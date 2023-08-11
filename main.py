@@ -46,7 +46,7 @@ for i, entry in filtered_data.iterrows():
     # V0: markdown style
     st.markdown('---------------')
     
-    fullname = entry["fullname"]
+    fullname = " ".join(entry["fullname"].replace(","," ").split())
     st.header(fullname)
 
     # email = entry["email"]
@@ -58,11 +58,12 @@ for i, entry in filtered_data.iterrows():
     
     education = entry["education"]
     st.subheader("Ngành học")
-    st.write(education)
+    st.text(education)
 
     work = entry["work"]
-    st.subheader("Công việc")
-    st.write(work)
+    if work:
+        st.subheader("Công việc")
+        st.text(work)
 
     last_update = entry["timestamp"].split()[0]
     st.caption(f"Cập nhật lần cuối: "+ last_update)

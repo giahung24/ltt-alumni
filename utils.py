@@ -1,8 +1,11 @@
 from pathlib import Path
 import streamlit as st
 import pandas as pd
+import re
 
 STATIC_DIR = Path("./static")
+YEAR_RANGE_RE = re.compile(r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours)")
+
 
 # ---------------------------------------------------------------
 # -- IMAGE processing
@@ -27,7 +30,7 @@ def load_data():
     path = "data.xlsx"
     data = pd.read_excel(path)
     data.columns = ["timestamp", "fullname", "email", "year", "picture_link", "education", "work"]
-    return data.astype(str)
+    return data.fillna("").astype(str)
 
 
 def keep_last_entry_by_email(df):
