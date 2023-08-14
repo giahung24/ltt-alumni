@@ -1,3 +1,5 @@
 .streamlit/secrets.toml
+.credentials
 __pycache__
 ~*
+*.ipynb
