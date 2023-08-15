@@ -2,13 +2,15 @@ import re
 
 import streamlit as st
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, to_datetime
 from PIL import Image, ImageOps
 from pathlib import Path
 from oauth2client.service_account import ServiceAccountCredentials
 from gspread_pandas import Spread
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+from unidecode import unidecode
+
 from streamlit import secrets as st_secrets
 from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 
@@ -16,6 +18,11 @@ from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 YEAR_RANGE_RE = re.compile(r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours)")
 
 
+# ---------------------------------------------------------------
+# -- text processing
+@st.cache_data(ttl=3600)
+def make_anchor(string:str)->str:
+    return unidecode(string.lower()).strip().split()
 
 # ---------------------------------------------------------------
 # -- IMAGE processing
@@ -54,6 +61,7 @@ def resize_image(img_path):
 
 # ---------------------------------------------------------------
 # dataframe processing
+@st.cache_data(ttl=900)
 def load_data():
     return read_data_from_spreadsheet()
 
@@ -150,6 +158,7 @@ def read_data_from_spreadsheet(sheet_id=None)->DataFrame:
     sheet = Spread(sheet_id, creds=GG_CREDENTIALS)
     df = sheet.sheet_to_df(index=0)
     df.columns = DATA_COLUMNS_NAME
+    df["timestamp"] = to_datetime(df["timestamp"])
     return df.fillna("").astype(str)
 
 

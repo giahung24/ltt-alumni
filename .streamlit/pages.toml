@@ -1,4 +1,10 @@
 [[pages]]
 path = "main.py"
-name = "Home"
+name = "Trang chủ"
 icon = "🏠"
+
+
+[[pages]]
+path = "about.py"
+name = "Thông tin"
+icon = "ℹ️"

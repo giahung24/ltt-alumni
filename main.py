@@ -4,9 +4,8 @@ from config import MAIN_APP_PAGE_CONFIG
 from utils import ( 
                 display_image, get_profile_pic_static_path,
                 keep_last_entry_by_email, load_data,
-                check_and_download_new_images
+                check_and_download_new_images, make_anchor
 )
-
 from st_pages import show_pages_from_config, add_page_title
 
 
@@ -15,16 +14,17 @@ from st_pages import show_pages_from_config, add_page_title
 show_pages_from_config()
 
 # TODO :
-# Theme: change font
-# Better info show card
-# Format year range in description
 # Quote for main page
+# Theme: change font
+# Better info show card (https://pypi.org/project/streamlit-image-select/)
+# Format year range in description
+
 
 st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 
 # -----------------------------
 # ---------- MAIN APP ---------
-st.title("Kỷ yếu Lớp Pháp ngữ")
+st.title("Kỷ yếu lớp Pháp ngữ", anchor=False)
 
 st.info('-- some quote here --')
 
@@ -33,29 +33,26 @@ with st.spinner(text="Kiểm tra dữ liệu từ google form, bạn vui lòng c
     check_and_download_new_images(data)
 
 all_years = sorted(data.year.unique())
+all_years.insert(0, "Tất cả")
 
 # --------- SIDEBAR ------------
 with st.sidebar:
-    years_selected = st.multiselect(
+    year_selected = st.selectbox(
         "Năm tốt nghiệp",
-        all_years,
         all_years
     )
-
-    filtered_data = data.query("year.isin(@years_selected)").sort_values(by="year").reset_index(drop=True)
+    filtered_data = data.sort_values(by="year").reset_index(drop=True)
+    if year_selected != "Tất cả":
+        filtered_data = data.query("year==@year_selected").reset_index(drop=True)
     filtered_data.index = filtered_data.index + 1
-    if len(filtered_data) > 0:
-        st.dataframe(filtered_data, 
-                    hide_index=False, 
-                    use_container_width=True,
-                    column_order=["year","fullname"],
-                    column_config={
-                        "year": st.column_config.TextColumn("Năm tốt nghiệp"),
-                        "fullname": st.column_config.TextColumn("Họ tên")}
-        )
-    else:
-        st.warning("Chọn ít nhất một năm tốt nghiệp để hiển thị thông tin")
-
+    st.dataframe(filtered_data, 
+                hide_index=False, 
+                use_container_width=True,
+                column_order=["year","fullname"],
+                column_config={
+                    "year": st.column_config.TextColumn("Năm tốt nghiệp"),
+                    "fullname": st.column_config.TextColumn("Họ tên")}
+    )
 # -------- MAIN CONTAINER -----------
 
 for i, entry in filtered_data.iterrows():
@@ -67,7 +64,7 @@ for i, entry in filtered_data.iterrows():
     st.subheader(f"[{year-3} - {year}]")
 
     fullname = " ".join(entry["fullname"].replace(","," ").split())
-    st.header(fullname)
+    st.header(fullname, anchor=make_anchor(fullname))
 
     # email = entry["email"]
     # st.subheader(email)
