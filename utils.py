@@ -22,7 +22,7 @@ YEAR_RANGE_RE = re.compile(r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|p
 # -- text processing
 @st.cache_data(ttl=3600)
 def make_anchor(string:str)->str:
-    return unidecode(string.lower()).strip().split()
+    return "-".join(unidecode(string.lower()).strip().split())
 
 # ---------------------------------------------------------------
 # -- IMAGE processing

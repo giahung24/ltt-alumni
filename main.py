@@ -9,18 +9,14 @@ from utils import (
 from st_pages import show_pages_from_config, add_page_title
 
 
-# add_page_title()
-
 show_pages_from_config()
+st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 
 # TODO :
 # Quote for main page
 # Theme: change font
 # Better info show card (https://pypi.org/project/streamlit-image-select/)
 # Format year range in description
-
-
-st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 
 # -----------------------------
 # ---------- MAIN APP ---------
@@ -64,7 +60,7 @@ for i, entry in filtered_data.iterrows():
     st.subheader(f"[{year-3} - {year}]")
 
     fullname = " ".join(entry["fullname"].replace(","," ").split())
-    st.header(fullname, anchor=make_anchor(fullname))
+    st.header(fullname.title(), anchor=make_anchor(f"{year}-{fullname}"))
 
     # email = entry["email"]
     # st.subheader(email)

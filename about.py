@@ -9,4 +9,6 @@ from utils import (
 
 from st_pages import show_pages_from_config, add_page_title
 
+
 show_pages_from_config()
+st.set_page_config(**MAIN_APP_PAGE_CONFIG)
