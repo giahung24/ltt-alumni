@@ -18,9 +18,14 @@ from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 YEAR_RANGE_RE = re.compile(r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours)")
 
 
+def emails_can_be_showed():
+    if "show_email" in st.session_state:
+        return st.session_state.show_email
+    return False
+
 # ---------------------------------------------------------------
 # -- text processing
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def make_anchor(string:str)->str:
     return "-".join(unidecode(string.lower()).strip().split())
 
@@ -61,8 +66,10 @@ def resize_image(img_path):
 
 # ---------------------------------------------------------------
 # dataframe processing
-@st.cache_data(ttl=900)
-def load_data():
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_data(timestamp=None):
+    # pass timestamp to by pass st cache mecanism
     return read_data_from_spreadsheet()
 
 
@@ -83,6 +90,10 @@ def keep_last_entry_by_email(df):
 def plot_email_count_by_year(data:DataFrame):
     email_count_by_year = data.groupby("year").agg({"email":"count"})
     st.bar_chart(email_count_by_year)
+
+
+def make_clickable(url, name):
+    return '<a href="{}" rel="noopener noreferrer" target="_self">{}</a>'.format(url, name)
 
 
 # ------------------------------------------------
@@ -137,21 +148,6 @@ def download_and_resize_images(file_ids:list):
         print(f"Downloaded {count} files. Done!")
 
 
-# def download_all_photos_from_data_sheet(data:DataFrame):
-#     gauth = GoogleAuth()
-#     gauth.credentials = GG_CREDENTIALS
-#     gauth.auth_method = 'service'
-#     drive = GoogleDrive(gauth)    
-#     count = 0
-#     print("Checking picture links...")
-#     for link in data["picture_link"]:
-#         file_id = get_id_from_gg_link(link)
-#         save_path = download_file_by_id(drive, file_id, IMG_DIR)
-#         resize_image(save_path)
-#         count += 1
-#     print(f"Downloaded {count} files. Done!")
-
-
 def read_data_from_spreadsheet(sheet_id=None)->DataFrame:
     if sheet_id is None:
         sheet_id = st_secrets["gg_data_sheet"]["id"]
@@ -159,6 +155,7 @@ def read_data_from_spreadsheet(sheet_id=None)->DataFrame:
     df = sheet.sheet_to_df(index=0)
     df.columns = DATA_COLUMNS_NAME
     df["timestamp"] = to_datetime(df["timestamp"])
+    df["fullname"] = df["fullname"].apply(lambda x: x.title())
     return df.fillna("").astype(str)
 
 

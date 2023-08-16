@@ -9,6 +9,6 @@ MAIN_APP_PAGE_CONFIG = {
     "layout":"wide"
 }
 
-DATA_COLUMNS_NAME = ["timestamp", "fullname", "email", "year", "picture_link", "education", "work"]
+DATA_COLUMNS_NAME = ["timestamp", "fullname", "year", "picture_link", "education", "work", "email"]
 
 THUMBNAIL_SIZE = (500, 500)
