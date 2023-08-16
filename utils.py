@@ -15,7 +15,10 @@ from streamlit import secrets as st_secrets
 from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 
 
-YEAR_RANGE_RE = re.compile(r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours)")
+YEAR_RANGE_RE = re.compile(
+    r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours|maintenant)"
+)
+NON_ALPHA_RE = re.compile(r"\W")
 
 
 def emails_can_be_showed():
@@ -23,16 +26,21 @@ def emails_can_be_showed():
         return st.session_state.show_email
     return False
 
+
 # ---------------------------------------------------------------
 # -- text processing
 @st.cache_data(ttl=3600, show_spinner=False)
-def make_anchor(string:str)->str:
-    return "-".join(unidecode(string.lower()).strip().split())
+def make_anchor(string: str) -> str:
+    string = unidecode(string.lower()).strip()
+    string = NON_ALPHA_RE.sub(" ", string)
+    return "-".join(string.split())
+
 
 # ---------------------------------------------------------------
 # -- IMAGE processing
-def get_profile_pic_static_path(picture_id:str, ext:str="*")->str:
-    """Get file in static/img with 
+
+def get_profile_pic_static_path(picture_id: str, ext: str = "*") -> str:
+    """Get file in static/img with
 
     Parameters
     ----------
@@ -58,11 +66,13 @@ def display_image(static_path):
         unsafe_allow_html=True,
     )
 
+
 def resize_image(img_path):
     image = Image.open(img_path)
     image.thumbnail(THUMBNAIL_SIZE)
     image = ImageOps.exif_transpose(image)
     image.save(img_path)
+
 
 # ---------------------------------------------------------------
 # dataframe processing
@@ -73,9 +83,8 @@ def load_data(timestamp=None):
     return read_data_from_spreadsheet()
 
 
-def check_and_download_new_images(data:DataFrame):
-    """Check if there is any new photo_id in data sheet, then download it
-    """
+def check_and_download_new_images(data: DataFrame):
+    """Check if there is any new photo_id in data sheet, then download it"""
     all_ids = [get_id_from_gg_link(link) for link in data["picture_link"].values]
     local_ids = [path.stem for path in (IMG_DIR).glob("*")]
     new_ids = list(set(all_ids).difference(local_ids))
@@ -87,8 +96,8 @@ def keep_last_entry_by_email(df):
     return df.sort_values("timestamp").drop_duplicates(subset=["email"], keep="last")
 
 
-def plot_email_count_by_year(data:DataFrame):
-    email_count_by_year = data.groupby("year").agg({"email":"count"})
+def plot_email_count_by_year(data: DataFrame):
+    email_count_by_year = data.groupby("year").agg({"email": "count"})
     st.bar_chart(email_count_by_year)
 
 
@@ -99,23 +108,26 @@ def make_clickable(url, name):
 # ------------------------------------------------
 # google api
 
-GG_CREDENTIALS =  ServiceAccountCredentials.from_json_keyfile_dict(
-                        st_secrets["gg_service_account"], 
-                        scopes = [
-                            "https://www.googleapis.com/auth/drive", 
-                            "https://www.googleapis.com/auth/spreadsheets.readonly"
-                        ]
+GG_CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_dict(
+    st_secrets["gg_service_account"],
+    scopes=[
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ],
 )
+
 
 def get_id_from_gg_link(link):
     return link.split("?id=")[1]
 
 
-def download_file_by_id(gg_drive_client:GoogleDrive, file_id:str, save_dir:Path, overwrite=False)->str:
+def download_file_by_id(
+    gg_drive_client: GoogleDrive, file_id: str, save_dir: Path, overwrite=False
+) -> str:
     """Download file to save_dir.
     Return save path : save_dir/file_id.ext (ext get from gg drive metadata)
     """
-    img_file = gg_drive_client.CreateFile({'id': file_id})
+    img_file = gg_drive_client.CreateFile({"id": file_id})
     img_file.FetchMetadata(fields="fullFileExtension")
     ext = img_file.metadata["fullFileExtension"]
     save_path = save_dir / f"{file_id}.{ext}"
@@ -127,17 +139,17 @@ def download_file_by_id(gg_drive_client:GoogleDrive, file_id:str, save_dir:Path,
     return save_path
 
 
-def download_and_resize_images(file_ids:list):
+def download_and_resize_images(file_ids: list):
     n_files = len(file_ids)
     if n_files > 0:
         gauth = GoogleAuth()
         gauth.credentials = GG_CREDENTIALS
-        gauth.auth_method = 'service'
+        gauth.auth_method = "service"
         drive = GoogleDrive(gauth)
         count = 0
         print("Download photos from drive...")
         progress_text = f"Đang xử lý thông tin của {n_files} bạn mới..."
-        progress_bar = st.progress(0, text=progress_text)        
+        progress_bar = st.progress(0, text=progress_text)
         for i, file_id in enumerate(file_ids):
             percent_completed = int(np.ceil(100 / n_files * i))
             progress_bar.progress(percent_completed, text=progress_text)
@@ -148,7 +160,7 @@ def download_and_resize_images(file_ids:list):
         print(f"Downloaded {count} files. Done!")
 
 
-def read_data_from_spreadsheet(sheet_id=None)->DataFrame:
+def read_data_from_spreadsheet(sheet_id=None) -> DataFrame:
     if sheet_id is None:
         sheet_id = st_secrets["gg_data_sheet"]["id"]
     sheet = Spread(sheet_id, creds=GG_CREDENTIALS)
@@ -157,8 +169,3 @@ def read_data_from_spreadsheet(sheet_id=None)->DataFrame:
     df["timestamp"] = to_datetime(df["timestamp"])
     df["fullname"] = df["fullname"].apply(lambda x: x.title())
     return df.fillna("").astype(str)
-
-
-if __name__ == "__main__":
-    df = read_data_from_spreadsheet()
-    check_and_download_new_images(df)
