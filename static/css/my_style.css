@@ -1,0 +1,24 @@
+.eczjsme4{
+    padding-top: 1rem;
+}
+.ea3mdgi4{
+    padding-top: 2em;
+}
+.tableFixHead          
+{   overflow: auto; 
+    min-height: 100px;
+    max-height: 300px; 
+    width: 100%;
+}
+.tableFixHead table         
+{   
+    width: 100%;
+}
+
+.tableFixHead th, .tableFixHead td{
+    border-style: none !important;
+    border-image-width: 0 !important;
+    }
+.tableFixHead a{
+    text-decoration: none !important;
+}
