@@ -73,7 +73,7 @@ def get_profile_pic_static_path(picture_id: str, ext: str = "*") -> str:
 
 def display_image(static_path):
     st.markdown(
-        f'<img src="{static_path}" height="333" style="border: 1px solid black">',
+        f'<img src="{static_path}" height="333" style="border: 1px solid black"> </br>',
         unsafe_allow_html=True,
     )
 
@@ -96,11 +96,11 @@ def load_data():
 
 def check_and_download_new_images(data: DataFrame):
     """Check if there is any new photo_id in data sheet, then download it"""
-    logger.info("Checking all photo id in sheet")
+    # logger.info("Checking all photo id in sheet")
     all_ids = [get_id_from_gg_link(link) for link in data["picture_link"].values]
     local_ids = [path.stem for path in (IMG_DIR).glob("*")]
     new_ids = list(set(all_ids).difference(local_ids))
-    logger.info(f"Id in sheet: {len(all_ids)}. Id on local: {len(local_ids)}. New ids to download: {len(new_ids)}")
+    # logger.info(f"Id in sheet: {len(all_ids)}. Id on local: {len(local_ids)}. New ids to download: {len(new_ids)}")
     download_and_resize_images(new_ids)
 
 
@@ -160,29 +160,29 @@ def download_and_resize_images(file_ids: list):
         gauth.auth_method = "service"
         drive = GoogleDrive(gauth)
         count = 0
-        logger.info("Download photos from drive...")
+        # logger.info("Download photos from drive...")
         progress_text = f"Đang xử lý thông tin của {n_files} bạn mới..."
         progress_bar = st.progress(0, text=progress_text)
         for i, file_id in enumerate(file_ids):
             percent_completed = int(np.ceil(100 / n_files * i))
             progress_bar.progress(percent_completed, text=progress_text)
             save_path = download_file_by_id(drive, file_id, IMG_DIR)
-            logger.info(f"- Downloaded {file_id} to {save_path}")
+            # logger.info(f"- Downloaded {file_id} to {save_path}")
             resize_image(save_path)
             count += 1
         progress_bar.empty()
-        logger.info(f"Downloaded {count} files. Done!")
+        # logger.info(f"Downloaded {count} files. Done!")
 
 
 def read_data_from_spreadsheet(sheet_id=None) -> DataFrame:
     if sheet_id is None:
         sheet_id = st_secrets["gg_data_sheet"]["id"]
-    logger.info("Loading google sheet")
+    # logger.info("Loading google sheet")
     sheet = Spread(sheet_id, creds=GG_CREDENTIALS)
-    logger.info("Convert sheet to df")
+    # logger.info("Convert sheet to df")
     df = sheet.sheet_to_df(index=0)
     df.columns = DATA_COLUMNS_NAME
     df["timestamp"] = to_datetime(df["timestamp"])
     df["fullname"] = df["fullname"].apply(lambda x: x.title())
-    logger.info("read_data_from_spreadsheet done")
+    # logger.info("read_data_from_spreadsheet done")
     return df.fillna("").astype(str)

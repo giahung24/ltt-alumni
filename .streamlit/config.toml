@@ -2,8 +2,8 @@
 enableStaticServing = true
 
 [theme]
+base="light"
 primaryColor="#c36226ff"
 backgroundColor="#ede6d9ff"
 secondaryBackgroundColor="#e7dfd1"
 textColor="#2c4058"
-font="Merriweather Sans"

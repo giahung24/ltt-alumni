@@ -16,7 +16,7 @@ st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 # --------- CSS ---------
 load_css_stylesheet("./static/css/my_style.css")
 st.markdown("""<style>
-  @import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Merriweather+Sans:wght@400;500&family=Alumni+Sans+Inline+One&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Libre+Bodoni:wght@500&family=Playfair+Display:wght@400;600&family=Alumni+Sans+Inline+One&display=swap');
 </style>""", unsafe_allow_html=True)
 
 # ------------------------
@@ -32,7 +32,7 @@ st.markdown("""<style>
 # st.title("Kỷ yếu lớp Pháp ngữ", anchor=False)
 col1, col2 = st.columns(spec=(0.2, 0.8), gap="small")
 col1.markdown("<span class='big_title'>Kỷ yếu</span>", unsafe_allow_html=True)
-col2.markdown("<span class='small_title'>LỚP PHÁP NGỮ - TPHT Chuyên Lý Tự Trọng</span>", unsafe_allow_html=True)
+col2.markdown("<span class='small_title'>LỚP PHÁP NGỮ THPT CHUYÊN LÝ TỰ TRỌNG</span>", unsafe_allow_html=True)
 
 st.info("“Combien je suis chanceux d\'avoir quelque chose qui me fait dire au revoir très difficilement” - A.A. Milne")
 
@@ -61,7 +61,7 @@ with st.sidebar:
 
     html_table = (
         filtered_data.reset_index()[["index", "year", "anchor"]]
-        .rename(columns={"index": "#️⃣", "year": "🎓", "anchor": "🧑‍🎓"})
+        .rename(columns={"index": "", "year": "🎓", "anchor": "🧑‍🎓"})
         .style.hide(axis="index")
         .to_html(index=False, justify="left", border=0)
     )
@@ -81,12 +81,12 @@ with st.sidebar:
     st.warning(
         "Để cập nhật thông tin đã có, bạn dùng form trên và điền đúng email đã dùng của lần trước, hệ thống chỉ hiển thị bản ghi sau cùng của mỗi email."
     )
-    if st.button("Hiển thị email của mọi người", use_container_width=True):
+    if st.button("📧 Hiển thị email của mọi người", use_container_width=True):
         st.session_state.show_email = True
     st.success(
         "Sau khi thêm hoặc cập nhật, nếu chưa thấy thông tin được hiển thị trên trang này, bạn có thể bấm nút dưới đây để tải lại dữ liệu"
     )
-    if st.button("Cập nhật dữ liệu", use_container_width=True, type="primary"):
+    if st.button("🔃 Cập nhật dữ liệu", use_container_width=True):
         st.cache_data.clear()
         st.experimental_rerun()
 
@@ -98,7 +98,7 @@ for i, entry in filtered_data.iterrows():
     # V0: markdown style
 
     year = int(entry["year"])
-    st.subheader(f"[{year-3} - {year}]")
+    st.subheader(f"{year-3} - {year}", anchor=False)
 
     fullname = entry["fullname"]
     st.header(fullname, anchor=make_anchor(f"{year}-{fullname}"))
@@ -112,13 +112,14 @@ for i, entry in filtered_data.iterrows():
     display_image(pic_path)
 
     education = entry["education"]
-    st.subheader("Ngành học")
-    st.text(education)
+    st.markdown("<span class='section section_fr increase-spacing-2'>FORMATION |</span><span class='section section_vn increase-spacing-2'> NGÀNH HỌC</span>", unsafe_allow_html=True)
+
+    st.markdown(education)
 
     work = entry["work"]
     if work:
-        st.subheader("Công việc")
-        st.text(work)
+        st.markdown("<span class='section section_fr increase-spacing-2'>PROFESSION |</span><span class='section section_vn increase-spacing-2'> CÔNG VIỆC</span>", unsafe_allow_html=True)
+        st.markdown(work)
 
     last_update = entry["timestamp"].split()[0]
     st.caption(f"Cập nhật lần cuối: " + last_update)
