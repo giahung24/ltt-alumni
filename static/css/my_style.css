@@ -1,9 +1,26 @@
+/* Sidebar and main container TOP PADDING */
 .eczjsme4{
     padding-top: 1rem;
 }
 .ea3mdgi4{
     padding-top: 2em;
 }
+/* Headers Font */
+.big_title{
+    font-family: 'Bungee Outline' !important;
+    font-size: 5em;
+    font-weight: 800;
+    color: #c36226ff;
+}
+.small_title{
+    font-family: 'Alumni Sans Inline One' !important;
+    font-size: 5em;
+    font-weight: 400;
+    color: #2c4058;
+}
+
+
+/* Sidebar table */
 .tableFixHead          
 {   overflow: auto; 
     min-height: 100px;

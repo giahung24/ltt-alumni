@@ -1,48 +1,25 @@
 import streamlit as st
-
+import logging
+import sys
 from config import MAIN_APP_PAGE_CONFIG
 from utils import (check_and_download_new_images, display_image,
                    emails_can_be_showed, get_profile_pic_static_path,
-                   keep_last_entry_by_email, load_data, make_anchor,
+                   keep_last_entry_by_email, load_css_stylesheet, load_data, make_anchor,
                    make_clickable)
+
+logformat_full = '[%(asctime)s]%(name)s:%(levelname)s:%(message)s'
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=logformat_full, datefmt='%d-%m %H:%M')
+logger = logging.getLogger(__name__)
 
 st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 
 # --------- CSS ---------
-st.markdown(
-    """
-<style>
-    .eczjsme4{
-        padding-top: 1rem;
-    }
-    .ea3mdgi4{
-        padding-top: 2em;
-    }
-    .tableFixHead          
-    {   overflow: auto; 
-        min-height: 100px;
-        max-height: 300px; 
-        width: 100%;
-    }
-    .tableFixHead table         
-    {   
-        width: 100%;
-    }
+load_css_stylesheet("./static/css/my_style.css")
+st.markdown("""<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Merriweather+Sans:wght@400;500&family=Alumni+Sans+Inline+One&display=swap');
+</style>""", unsafe_allow_html=True)
 
-    .tableFixHead th, .tableFixHead td{
-        border-style: none !important;
-        border-image-width: 0 !important;
-    }
-    .tableFixHead a{
-        text-decoration: none !important;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-# ----------------------------------------
-
+# ------------------------
 # TODO :
 # Quote for main page
 # Theme: change font
@@ -52,9 +29,12 @@ st.markdown(
 
 # -----------------------------
 # ---------- MAIN APP ---------
-st.title("Kỷ yếu lớp Pháp ngữ", anchor=False)
+# st.title("Kỷ yếu lớp Pháp ngữ", anchor=False)
+col1, col2 = st.columns(spec=(0.2, 0.8), gap="small")
+col1.markdown("<span class='big_title'>Kỷ yếu</span>", unsafe_allow_html=True)
+col2.markdown("<span class='small_title'>LỚP PHÁP NGỮ - TPHT Chuyên Lý Tự Trọng</span>", unsafe_allow_html=True)
 
-st.info("-- some quote here --")
+st.info("“Combien je suis chanceux d\'avoir quelque chose qui me fait dire au revoir très difficilement” - A.A. Milne")
 
 with st.spinner(text="Đang tải dữ liệu từ google cloud, bạn vui lòng chờ chút nhé..."):
     data = keep_last_entry_by_email(load_data())
@@ -116,7 +96,6 @@ with st.sidebar:
 for i, entry in filtered_data.iterrows():
     # show each "user card"
     # V0: markdown style
-    st.markdown("---------------")
 
     year = int(entry["year"])
     st.subheader(f"[{year-3} - {year}]")
@@ -143,3 +122,5 @@ for i, entry in filtered_data.iterrows():
 
     last_update = entry["timestamp"].split()[0]
     st.caption(f"Cập nhật lần cuối: " + last_update)
+
+    st.markdown("---------------")

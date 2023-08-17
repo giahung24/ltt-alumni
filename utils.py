@@ -1,4 +1,6 @@
 import re
+import logging
+import sys
 
 import streamlit as st
 import numpy as np
@@ -14,6 +16,10 @@ from unidecode import unidecode
 from streamlit import secrets as st_secrets
 from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 
+logformat_full = '[%(asctime)s]%(name)s:%(levelname)s:%(message)s'
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=logformat_full, datefmt='%d-%m %H:%M')
+logger = logging.getLogger(__name__)
+
 
 YEAR_RANGE_RE = re.compile(
     r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours|maintenant)"
@@ -25,6 +31,11 @@ def emails_can_be_showed():
     if "show_email" in st.session_state:
         return st.session_state.show_email
     return False
+
+def load_css_stylesheet(css_path:str):
+    with open(css_path, "r") as f:
+        css_content = f.read()
+        st.markdown(f"""<style>{css_content}</style>""", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------
@@ -69,25 +80,27 @@ def display_image(static_path):
 
 def resize_image(img_path):
     image = Image.open(img_path)
-    image.thumbnail(THUMBNAIL_SIZE)
     image = ImageOps.exif_transpose(image)
+    image.thumbnail(THUMBNAIL_SIZE)
     image.save(img_path)
 
 
 # ---------------------------------------------------------------
 # dataframe processing
 
-@st.cache_data(ttl=300, show_spinner=False)
-def load_data(timestamp=None):
+@st.cache_data(ttl=600, show_spinner=False)
+def load_data():
     # pass timestamp to by pass st cache mecanism
     return read_data_from_spreadsheet()
 
 
 def check_and_download_new_images(data: DataFrame):
     """Check if there is any new photo_id in data sheet, then download it"""
+    logger.info("Checking all photo id in sheet")
     all_ids = [get_id_from_gg_link(link) for link in data["picture_link"].values]
     local_ids = [path.stem for path in (IMG_DIR).glob("*")]
     new_ids = list(set(all_ids).difference(local_ids))
+    logger.info(f"Id in sheet: {len(all_ids)}. Id on local: {len(local_ids)}. New ids to download: {len(new_ids)}")
     download_and_resize_images(new_ids)
 
 
@@ -132,10 +145,10 @@ def download_file_by_id(
     ext = img_file.metadata["fullFileExtension"]
     save_path = save_dir / f"{file_id}.{ext}"
     if not save_path.exists() or overwrite:
-        print("Downloading", file_id)
+        logger.info(f"Downloading {file_id}")
         img_file.GetContentFile(save_path.as_posix())
     else:
-        print("File exists. Skip downloading.")
+        logger.info("File exists. Skip downloading.")
     return save_path
 
 
@@ -147,25 +160,29 @@ def download_and_resize_images(file_ids: list):
         gauth.auth_method = "service"
         drive = GoogleDrive(gauth)
         count = 0
-        print("Download photos from drive...")
+        logger.info("Download photos from drive...")
         progress_text = f"Đang xử lý thông tin của {n_files} bạn mới..."
         progress_bar = st.progress(0, text=progress_text)
         for i, file_id in enumerate(file_ids):
             percent_completed = int(np.ceil(100 / n_files * i))
             progress_bar.progress(percent_completed, text=progress_text)
             save_path = download_file_by_id(drive, file_id, IMG_DIR)
+            logger.info(f"- Downloaded {file_id} to {save_path}")
             resize_image(save_path)
             count += 1
         progress_bar.empty()
-        print(f"Downloaded {count} files. Done!")
+        logger.info(f"Downloaded {count} files. Done!")
 
 
 def read_data_from_spreadsheet(sheet_id=None) -> DataFrame:
     if sheet_id is None:
         sheet_id = st_secrets["gg_data_sheet"]["id"]
+    logger.info("Loading google sheet")
     sheet = Spread(sheet_id, creds=GG_CREDENTIALS)
+    logger.info("Convert sheet to df")
     df = sheet.sheet_to_df(index=0)
     df.columns = DATA_COLUMNS_NAME
     df["timestamp"] = to_datetime(df["timestamp"])
     df["fullname"] = df["fullname"].apply(lambda x: x.title())
+    logger.info("read_data_from_spreadsheet done")
     return df.fillna("").astype(str)
