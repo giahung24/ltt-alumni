@@ -16,15 +16,18 @@ from unidecode import unidecode
 from streamlit import secrets as st_secrets
 from config import STATIC_DIR, DATA_COLUMNS_NAME, THUMBNAIL_SIZE, IMG_DIR
 
-logformat_full = '[%(asctime)s]%(name)s:%(levelname)s:%(message)s'
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=logformat_full, datefmt='%d-%m %H:%M')
+logformat_full = "[%(asctime)s]%(name)s:%(levelname)s:%(message)s"
+logging.basicConfig(
+    stream=sys.stdout, level=logging.INFO, format=logformat_full, datefmt="%d-%m %H:%M"
+)
 logger = logging.getLogger(__name__)
 
 
 YEAR_RANGE_RE = re.compile(
-    r"(?:19|20)\d{2} ?[\-\_] ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours|maintenant)"
+    r"^(?:19|20)\d{2} ?[\-\_]? ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours|maintenant)?"
 )
 NON_ALPHA_RE = re.compile(r"\W")
+MULTI_CR_RE = re.compile(r"\n{3,}")
 
 
 def emails_can_be_showed():
@@ -32,10 +35,27 @@ def emails_can_be_showed():
         return st.session_state.show_email
     return False
 
-def load_css_stylesheet(css_path:str):
+
+def load_css_stylesheet(css_path: str):
     with open(css_path, "r") as f:
         css_content = f.read()
         st.markdown(f"""<style>{css_content}</style>""", unsafe_allow_html=True)
+
+
+def load_javascript(js_path: str):
+    with open(js_path, "r") as f:
+        my_js = f.read()
+        my_html = f"<script>{my_js}</script>"
+        st.components.v1.html(my_html)
+
+
+def load_google_font():
+    st.markdown(
+        """<style>
+    @import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Bricolage+Grotesque:opsz@10..48&family=Libre+Bodoni:wght@500&family=Playfair+Display:wght@400;600&family=Alumni+Sans+Inline+One&display=swap');
+    </style>""",
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------
@@ -47,8 +67,28 @@ def make_anchor(string: str) -> str:
     return "-".join(string.split())
 
 
+def format_lines_with_years(text):
+    """"""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        line = line.strip()
+        matched = YEAR_RANGE_RE.match(line)
+        if matched:
+            anchor = matched.span()[1]
+            year_range = line[:anchor].replace(" ","")
+            head = f"<span class='year_range'>{year_range} </span>"
+            tail = line[anchor:]
+            lines[i] = "\n" + head + tail
+            # lines[i] = "\n" + lines[i]
+        elif i > 0:
+            lines[i] = "<br/>" + lines[i]
+    text = "\n".join(lines)
+    return MULTI_CR_RE.sub("\n\n", text).strip()
+
+
 # ---------------------------------------------------------------
 # -- IMAGE processing
+
 
 def get_profile_pic_static_path(picture_id: str, ext: str = "*") -> str:
     """Get file in static/img with
@@ -87,6 +127,7 @@ def resize_image(img_path):
 
 # ---------------------------------------------------------------
 # dataframe processing
+
 
 @st.cache_data(ttl=600, show_spinner=False)
 def load_data():
@@ -184,5 +225,7 @@ def read_data_from_spreadsheet(sheet_id=None) -> DataFrame:
     df.columns = DATA_COLUMNS_NAME
     df["timestamp"] = to_datetime(df["timestamp"])
     df["fullname"] = df["fullname"].apply(lambda x: x.title())
+    df["education"] = df["education"].apply(format_lines_with_years)
+    df["work"] = df["work"].apply(format_lines_with_years)
     # logger.info("read_data_from_spreadsheet done")
     return df.fillna("").astype(str)

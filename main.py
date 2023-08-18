@@ -2,9 +2,9 @@ import streamlit as st
 import logging
 import sys
 from config import MAIN_APP_PAGE_CONFIG
-from utils import (check_and_download_new_images, display_image,
+from utils import (check_and_download_new_images, display_image,load_google_font,
                    emails_can_be_showed, get_profile_pic_static_path,
-                   keep_last_entry_by_email, load_css_stylesheet, load_data, make_anchor,
+                   keep_last_entry_by_email, load_css_stylesheet, load_data, load_javascript, make_anchor,
                    make_clickable)
 
 logformat_full = '[%(asctime)s]%(name)s:%(levelname)s:%(message)s'
@@ -15,26 +15,18 @@ st.set_page_config(**MAIN_APP_PAGE_CONFIG)
 
 # --------- CSS ---------
 load_css_stylesheet("./static/css/my_style.css")
-st.markdown("""<style>
-  @import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Libre+Bodoni:wght@500&family=Playfair+Display:wght@400;600&family=Alumni+Sans+Inline+One&display=swap');
-</style>""", unsafe_allow_html=True)
-
-# ------------------------
-# TODO :
-# Quote for main page
-# Theme: change font
-# --- nice to have ---
-# Better info show card (https://pypi.org/project/streamlit-image-select/)
-# Format year range in description
+load_google_font()
+# --------- JS ------------
+# load_javascript("./static/js/my_script.js")
 
 # -----------------------------
 # ---------- MAIN APP ---------
 # st.title("Kỷ yếu lớp Pháp ngữ", anchor=False)
-col1, col2 = st.columns(spec=(0.2, 0.8), gap="small")
+col1, col2 = st.columns(spec=(0.23, 0.77), gap="small")
 col1.markdown("<span class='big_title'>Kỷ yếu</span>", unsafe_allow_html=True)
 col2.markdown("<span class='small_title'>LỚP PHÁP NGỮ THPT CHUYÊN LÝ TỰ TRỌNG</span>", unsafe_allow_html=True)
 
-st.info("“Combien je suis chanceux d\'avoir quelque chose qui me fait dire au revoir très difficilement” - A.A. Milne")
+st.markdown("<span class='quote'><span id='sign'>“</span>Combien je suis chanceux d\'avoir quelque chose qui me fait dire au revoir très difficilement - </span><span class='author'>A.A. Milne</span>", unsafe_allow_html=True)
 
 with st.spinner(text="Đang tải dữ liệu từ google cloud, bạn vui lòng chờ chút nhé..."):
     data = keep_last_entry_by_email(load_data())
@@ -46,9 +38,9 @@ all_years.insert(0, "Tất cả")
 # --------- SIDEBAR ------------
 with st.sidebar:
     year_selected = st.selectbox("Lọc theo năm tốt nghiệp 🎓", all_years)
-    filtered_data = data.sort_values(by="year").reset_index(drop=True)
+    filtered_data = data.sort_values(by=["year", "timestamp"], ascending=[True, False]).reset_index(drop=True)
     if year_selected != "Tất cả":
-        filtered_data = data.query("year==@year_selected").reset_index(drop=True)
+        filtered_data = data.query("year==@year_selected").sort_values("timestamp", ascending=False).reset_index(drop=True)
     filtered_data.index = filtered_data.index + 1
 
     filtered_data["anchor"] = (
@@ -89,6 +81,9 @@ with st.sidebar:
     if st.button("🔃 Cập nhật dữ liệu", use_container_width=True):
         st.cache_data.clear()
         st.experimental_rerun()
+    
+    st.markdown("### Liên hệ 📭")
+    st.info("Mọi chỉnh sửa, góp ý... vui lòng email cho mình [📧](mailto:giahung24@gmail.com?subject=[LTT%20alumni%20français])")
 
 
 # -------- MAIN CONTAINER -----------
@@ -96,12 +91,13 @@ with st.sidebar:
 for i, entry in filtered_data.iterrows():
     # show each "user card"
     # V0: markdown style
-
     year = int(entry["year"])
-    st.subheader(f"{year-3} - {year}", anchor=False)
-
     fullname = entry["fullname"]
-    st.header(fullname, anchor=make_anchor(f"{year}-{fullname}"))
+    _id = make_anchor(f"{year}-{fullname}")
+
+    st.subheader(f"{year-3} - {year}", anchor=_id)
+
+    st.header(fullname, anchor=False)
 
     if emails_can_be_showed():
         email = entry["email"]
@@ -112,14 +108,14 @@ for i, entry in filtered_data.iterrows():
     display_image(pic_path)
 
     education = entry["education"]
-    st.markdown("<span class='section section_fr increase-spacing-2'>FORMATION |</span><span class='section section_vn increase-spacing-2'> NGÀNH HỌC</span>", unsafe_allow_html=True)
+    st.markdown("<span class='section section_fr increase-spacing-2'>FORMATION </span><span class='section section_vn increase-spacing-1'> NGÀNH HỌC</span>", unsafe_allow_html=True)
 
-    st.markdown(education)
+    st.markdown(education, unsafe_allow_html=True)
 
     work = entry["work"]
     if work:
-        st.markdown("<span class='section section_fr increase-spacing-2'>PROFESSION |</span><span class='section section_vn increase-spacing-2'> CÔNG VIỆC</span>", unsafe_allow_html=True)
-        st.markdown(work)
+        st.markdown("<span class='section section_fr increase-spacing-2'>PROFESSION </span><span class='section section_vn increase-spacing-1'> CÔNG VIỆC</span>", unsafe_allow_html=True)
+        st.markdown(work, unsafe_allow_html=True)
 
     last_update = entry["timestamp"].split()[0]
     st.caption(f"Cập nhật lần cuối: " + last_update)

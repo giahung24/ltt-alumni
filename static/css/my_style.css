@@ -6,6 +6,22 @@
     padding-top: 2em;
 }
 /* Headers Font */
+.quote{
+    font-family: 'Playfair Display' !important;
+    font-size: 1.2em; 
+    font-style: italic;
+}
+
+.author{
+    font-family: 'Playfair Display' !important;
+    font-size: 1.3em; 
+    font-weight: 600;
+}
+
+#sign{
+    font-size: 2em; 
+}
+
 .big_title{
     font-family: 'Bungee Outline' !important;
     font-size: 5em;
@@ -21,6 +37,9 @@
 .increase-spacing-2{
     letter-spacing: 0.2em;
 }
+.increase-spacing-1{
+    letter-spacing: 0.1em;
+}
 h2{
     padding-top: 0px;
 }
@@ -32,6 +51,7 @@ h2 .css-10trblm.e1nzilvr0{
     /* letter-spacing: 1px; */
 }
 h3 .css-10trblm.e1nzilvr0{
+    /* promotion */
     font-family: 'Libre Bodoni' !important;
     font-size: 1em;
     margin-top: 1em;
@@ -47,7 +67,22 @@ h3 .css-10trblm.e1nzilvr0{
     font-weight: 600;
 }
 .section_vn{
-    font-size: 1.5em;
+    font-size: 1.4em;
+}
+
+.year_range{
+    /* year range in Formation or Work */
+    /* font-weight: bold; */
+    font-family: 'Libre Bodoni' !important;
+    /* text-shadow: 1px 1px 1px rgb(74, 70, 86); */
+    font-size: 1em;
+}
+
+.main p{
+    /*  formation & work  */
+    font-family: 'Bricolage Grotesque' !important;
+    font-size: 1.1em;
+    text-align: justify;
 }
 
 
