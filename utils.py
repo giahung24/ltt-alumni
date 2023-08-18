@@ -129,7 +129,7 @@ def resize_image(img_path):
 # dataframe processing
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def load_data():
     # pass timestamp to by pass st cache mecanism
     return read_data_from_spreadsheet()

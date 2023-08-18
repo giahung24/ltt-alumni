@@ -94,7 +94,7 @@ for i, entry in filtered_data.iterrows():
     year = int(entry["year"])
     fullname = entry["fullname"]
     _id = make_anchor(f"{year}-{fullname}")
-
+    st.markdown("---------------")
     st.subheader(f"{year-3} - {year}", anchor=_id)
 
     st.header(fullname, anchor=False)
@@ -119,5 +119,3 @@ for i, entry in filtered_data.iterrows():
 
     last_update = entry["timestamp"].split()[0]
     st.caption(f"Cập nhật lần cuối: " + last_update)
-
-    st.markdown("---------------")
