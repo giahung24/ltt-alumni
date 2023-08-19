@@ -10,6 +10,6 @@ MAIN_APP_PAGE_CONFIG = {
     "page_icon":"📒",
 }
 
-DATA_COLUMNS_NAME = ["timestamp", "fullname", "year", "picture_link", "education", "work", "email"]
+DATA_COLUMNS_NAME = ["timestamp", "fullname", "year", "picture_link", "education", "work", "email", "facebook"]
 
 THUMBNAIL_SIZE = (500, 500)
