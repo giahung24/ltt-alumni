@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kỷ yếu lớp Pháp - Chuyên Lý Tự Trọng Cần Thơ</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%93%92%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Outline&family=Bricolage+Grotesque:opsz@10..48&family=Libre+Bodoni:wght@500&family=Playfair+Display:wght@400;600&family=Alumni+Sans+Inline+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <label for="year-filter">Lọc theo năm tốt nghiệp 🎓</label>
+      <select id="year-filter"></select>
+    </div>
+
+    <div class="tableFixHead">
+      <table>
+        <thead><tr><th></th><th>🎓</th><th>🧑‍🎓</th></tr></thead>
+        <tbody id="index-body"></tbody>
+      </table>
+    </div>
+
+    <hr>
+
+    <div class="sidebar-section">
+      <h3>Hướng dẫn 🌟</h3>
+      <div class="callout callout-success">
+        🔗 Thêm hoặc cập nhật thông tin tại <a href="https://forms.gle/9dLQzcNBy9NQWMEW6" target="_blank" rel="noopener noreferrer">đây</a>
+      </div>
+      <div class="callout callout-warning">
+        Để cập nhật thông tin đã có, bạn dùng form trên và điền đúng email đã dùng của lần trước, hệ thống chỉ hiển thị bản ghi sau cùng của mỗi email.
+      </div>
+      <button id="toggle-email" class="btn">📧 Hiển thị email của mọi người</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Liên hệ 📭</h3>
+      <div class="callout callout-info">
+        Mọi chỉnh sửa, góp ý... vui lòng email cho mình
+        <a href="mailto:giahung24@gmail.com?subject=[LTT%20alumni%20fran%C3%A7ais]">📧</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="page-header">
+      <span class="big_title">Kỷ yếu</span>
+      <span class="small_title">LỚP PHÁP NGỮ THPT CHUYÊN LÝ TỰ TRỌNG</span>
+    </header>
+
+    <p class="tagline">
+      <span class="quote"><span id="sign">“</span>Combien je suis chanceux d'avoir quelque chose qui me fait dire au revoir très difficilement - </span>
+      <span class="author">A.A. Milne</span>
+    </p>
+
+    <div id="loader" class="loader">Đang tải dữ liệu...</div>
+    <div id="entries"></div>
+  </main>
+
+  <script src="assets/js/text.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

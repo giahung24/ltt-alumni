@@ -1,0 +1,75 @@
+{
+  "exported_at": "2026-05-25",
+  "entries": [
+    {
+      "timestamp": "2024-09-12 10:23:00",
+      "fullname": "Nguyễn Văn An",
+      "year": 2010,
+      "picture_link": "https://drive.google.com/open?id=1HiQc4GuFHsast6rxduUf5mUinAnDkS0o",
+      "education": "2010-2013 Université Paris-Saclay, Licence Informatique\n2013-2015 Master Intelligence Artificielle, Sorbonne Université",
+      "work": "2015-now Ingénieur logiciel, Paris",
+      "email": "an.nguyen@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2024-10-02 14:05:00",
+      "fullname": "Trần Thị Bình",
+      "year": 2010,
+      "picture_link": "https://drive.google.com/open?id=1AVnuQzafemnUKImzQkdRSObCpvhUXRZu",
+      "education": "2010-2014 Đại học Y Dược TP.HCM, Bác sĩ đa khoa",
+      "work": "2015-présent Bác sĩ nội trú, Bệnh viện Chợ Rẫy",
+      "email": "binh.tran@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2024-08-18 09:11:00",
+      "fullname": "Lê Hoàng Châu",
+      "year": 2012,
+      "picture_link": "https://drive.google.com/open?id=1BbUkR6lh4VXL9hYY4IvxeIgzd_HyyWWp",
+      "education": "2012-2015 Sciences Po Paris, Affaires publiques\n2015-2017 Master Relations Internationales, ENA",
+      "work": "2018-now Attachée diplomatique, Ambassade de France au Vietnam",
+      "email": "chau.le@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2024-11-20 18:42:00",
+      "fullname": "Phạm Minh Đức",
+      "year": 2012,
+      "picture_link": "https://drive.google.com/open?id=1ERL6H3xtOg1Yu7JEBYmp_ov8TWMKml4E",
+      "education": "2012-2017 École Polytechnique de Montréal, Génie mécanique",
+      "work": "2017-2020 Ingénieur, Bombardier\n2020-en cours Chef de projet, Airbus Toulouse",
+      "email": "duc.pham@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2025-01-15 21:30:00",
+      "fullname": "Võ Thị Em",
+      "year": 2015,
+      "picture_link": "https://drive.google.com/open?id=1Fk5nGbI0Swj6SIIDedb5fxAMdvXEJ5al",
+      "education": "2015-2018 Đại học Cần Thơ, Khoa Sư phạm tiếng Pháp",
+      "work": "2018-maintenant Giáo viên tiếng Pháp, Trường Chuyên Lý Tự Trọng",
+      "email": "em.vo@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2025-03-08 11:00:00",
+      "fullname": "Hoàng Gia Phúc",
+      "year": 2015,
+      "picture_link": "https://drive.google.com/open?id=missing-image-id-for-fallback-test",
+      "education": "2015-2020 Université de Lyon, Doctorat en Linguistique",
+      "work": "",
+      "email": "phuc.hoang@example.com",
+      "facebook": ""
+    },
+    {
+      "timestamp": "2025-04-22 15:18:00",
+      "fullname": "Đặng Thanh Huyền",
+      "year": 2018,
+      "picture_link": "https://drive.google.com/open?id=1FlA06tFpv4UZHQ6JcFyQzeiVxv3bKPTn",
+      "education": "2018-2021 ESCP Business School, Bachelor in Management\n2021-2023 Master Finance, HEC Paris",
+      "work": "2023-présent Analyste, BNP Paribas Singapour",
+      "email": "huyen.dang@example.com",
+      "facebook": ""
+    }
+  ]
+}
