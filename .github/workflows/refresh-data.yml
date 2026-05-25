@@ -30,7 +30,11 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          # httplib2 (pulled in by oauth2client) calls pp.DelimitedList,
+          # which only exists in pyparsing >= 3.1.0.
+          pip install 'pyparsing>=3.1.0'
 
       - name: Write Streamlit secrets
         env:
