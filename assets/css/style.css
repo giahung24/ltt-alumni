@@ -192,7 +192,6 @@ body.show-emails .entry .email { display: block; }
   font-size: 1.1em;
   text-align: justify;
   margin: 0.4rem 0;
-  white-space: pre-wrap;
 }
 .entry .last-update {
   display: block;
