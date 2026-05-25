@@ -2,35 +2,38 @@
 
 Writes RAW education/work text (no HTML). The JS frontend
 (assets/js/text.js) wraps year ranges in <span class="year_range"> and
-inserts <br> between lines at render time. Doing the formatting in JS
-keeps a single source of truth and avoids double-escaping when the
-data is consumed by the static page.
+inserts <br> between lines at render time.
 
-Run locally (not in the deployed bundle). Requires the same
-.streamlit/secrets.toml used by the Streamlit app. Output:
-data/alumni.json with shape {"exported_at": "YYYY-MM-DD",
+Requires .streamlit/secrets.toml with two TOML tables:
+  [gg_service_account]   # Google service-account JSON, key by key
+  [gg_data_sheet]
+    id = "<spreadsheet_id>"
+
+Output: data/alumni.json with shape {"exported_at": "YYYY-MM-DD",
 "entries": [ {timestamp, fullname, year, picture_link, education,
 work, email, facebook}, ... ]}.
 
-Usage: python scripts/export_sheet.py
+Usage: python scripts/export_sheet.py  (requires Python >= 3.11)
 """
 
 from __future__ import annotations
 
 import json
-import sys
+import tomllib
 from datetime import date
 from pathlib import Path
 
+from gspread_pandas import Spread
+from oauth2client.service_account import ServiceAccountCredentials
+from pandas import to_datetime
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+SECRETS_PATH = ROOT / ".streamlit" / "secrets.toml"
 
-from gspread_pandas import Spread  # noqa: E402
-from oauth2client.service_account import ServiceAccountCredentials  # noqa: E402
-from pandas import to_datetime  # noqa: E402
-from streamlit import secrets as st_secrets  # noqa: E402
-
-from config import DATA_COLUMNS_NAME  # noqa: E402
+DATA_COLUMNS_NAME = [
+    "timestamp", "fullname", "year", "picture_link",
+    "education", "work", "email", "facebook",
+]
 
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
@@ -38,11 +41,16 @@ SCOPES = [
 ]
 
 
-def read_raw_sheet():
+def load_secrets() -> dict:
+    with SECRETS_PATH.open("rb") as f:
+        return tomllib.load(f)
+
+
+def read_raw_sheet(secrets: dict):
     creds = ServiceAccountCredentials.from_json_keyfile_dict(
-        st_secrets["gg_service_account"], scopes=SCOPES,
+        secrets["gg_service_account"], scopes=SCOPES,
     )
-    sheet_id = st_secrets["gg_data_sheet"]["id"]
+    sheet_id = secrets["gg_data_sheet"]["id"]
     df = Spread(sheet_id, creds=creds).sheet_to_df(index=0)
     df.columns = DATA_COLUMNS_NAME
     df["timestamp"] = to_datetime(df["timestamp"])
@@ -55,7 +63,8 @@ def keep_last_entry_by_email(df):
 
 
 def main() -> None:
-    df = keep_last_entry_by_email(read_raw_sheet())
+    secrets = load_secrets()
+    df = keep_last_entry_by_email(read_raw_sheet(secrets))
     entries = []
     for _, row in df.iterrows():
         try:

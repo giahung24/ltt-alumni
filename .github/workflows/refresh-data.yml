@@ -26,15 +26,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          # httplib2 (pulled in by oauth2client) calls pp.DelimitedList,
-          # which only exists in pyparsing >= 3.1.0.
-          pip install 'pyparsing>=3.1.0'
+        run: pip install -r requirements.txt
 
       - name: Write Streamlit secrets
         env:

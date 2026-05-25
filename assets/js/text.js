@@ -1,7 +1,4 @@
-// Text helpers ported from utils.py.
-
 // make_anchor: unidecode + lowercase + non-word -> "-".
-// Equivalent to: unidecode(s).lower(), replace \W with space, join words with "-".
 function makeAnchor(s) {
   return s
     .normalize('NFD')
