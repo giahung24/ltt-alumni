@@ -1,0 +1,59 @@
+name: Refresh alumni data
+
+# Sunday 01:00 GMT+7 == Saturday 18:00 UTC.
+# Scheduled workflows on GitHub only run from the repository's DEFAULT branch,
+# so this file must be merged to main before the cron will fire. Use the
+# "Run workflow" button (workflow_dispatch) to test it on demand.
+on:
+  schedule:
+    - cron: '0 18 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-alumni-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write Streamlit secrets
+        env:
+          STREAMLIT_SECRETS_TOML: ${{ secrets.STREAMLIT_SECRETS_TOML }}
+        run: |
+          if [ -z "$STREAMLIT_SECRETS_TOML" ]; then
+            echo "::error::Missing STREAMLIT_SECRETS_TOML repository secret." >&2
+            exit 1
+          fi
+          mkdir -p .streamlit
+          printf '%s' "$STREAMLIT_SECRETS_TOML" > .streamlit/secrets.toml
+
+      - name: Export sheet to data/alumni.json
+        run: python scripts/export_sheet.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/alumni.json; then
+            echo "No changes in data/alumni.json. Nothing to commit."
+            exit 0
+          fi
+          git add data/alumni.json
+          git commit -m "chore: refresh alumni snapshot ($(date -u +%Y-%m-%d))"
+          git push
