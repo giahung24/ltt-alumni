@@ -23,23 +23,31 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-// format_lines_with_years: wrap leading year-range token in <span class="year_range">,
-// add <br/> between subsequent lines. Mirrors utils.format_lines_with_years.
+// format_lines_with_years: render raw text where each line may start with a
+// year range (e.g. "2010-2014", "2015-now", "2018-maintenant"). Year-range
+// lines get a <span class="year_range"> wrapper and a paragraph break (<br><br>)
+// before them; non-year lines join with a single <br>. The output is HTML —
+// the caller injects it via innerHTML inside a <p>.
 const YEAR_RANGE_RE = /^((?:19|20)\d{2} ?[\-_]? ?(?:(?:19|20)\d{2}|now|nay|pr[ée]sent|en cours|maintenant)?)/;
 
 function formatLinesWithYears(text) {
   if (!text) return '';
   const lines = String(text).split('\n');
-  const out = lines.map((raw, i) => {
-    const line = raw.trim();
+  const parts = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
     const m = line.match(YEAR_RANGE_RE);
     if (m && m[1]) {
       const yearRange = m[1].replace(/\s+/g, '');
       const tail = line.slice(m[0].length);
-      return `\n<span class="year_range">${escapeHtml(yearRange)} </span>${escapeHtml(tail)}`;
+      const head = `<span class="year_range">${escapeHtml(yearRange)} </span>`;
+      if (parts.length > 0) parts.push('<br><br>');
+      parts.push(head + escapeHtml(tail));
+    } else {
+      if (parts.length > 0) parts.push('<br>');
+      parts.push(escapeHtml(line));
     }
-    if (i > 0) return '<br/>' + escapeHtml(line);
-    return escapeHtml(line);
-  });
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  return parts.join('');
 }
