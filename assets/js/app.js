@@ -1,7 +1,8 @@
 // LTT Alumni — front-only renderer.
-// Loads data/alumni.json and renders the sidebar index + alumni cards.
+// Loads data/alumni.json and renders the roster index + alumni cards.
+// Core data logic (dedupByEmail, sorting, filtering, anchors, photo fallback) unchanged.
 
-const IMG_EXTS = ['jpg', 'jpeg', 'png', 'JPG'];
+const IMG_EXTS = ['jpg', 'jpeg', 'png', 'JPG', 'webp'];
 const LOCAL_IMG_BASE = 'static/img/';
 const DEFAULT_IMG = LOCAL_IMG_BASE + 'default.jpg';
 
@@ -11,16 +12,46 @@ const els = {
   indexBody: document.getElementById('index-body'),
   yearFilter: document.getElementById('year-filter'),
   toggleEmail: document.getElementById('toggle-email'),
+  searchInput: document.getElementById('search-input'),
+  activeStats: document.getElementById('active-stats'),
+  drawerSearch: document.getElementById('drawer-search'),
+  indexDrawer: document.getElementById('index-drawer'),
+  drawerBackdrop: document.getElementById('drawer-backdrop'),
+  openDrawerBtn: document.getElementById('open-drawer-btn'),
+  closeDrawerBtn: document.getElementById('close-drawer-btn'),
+  helpModal: document.getElementById('help-modal'),
+  helpBackdrop: document.getElementById('help-backdrop'),
+  openHelpBtn: document.getElementById('open-help-btn'),
+  closeHelpBtn: document.getElementById('close-help-btn'),
+};
+
+const ICONS = {
+  formation: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+  profession: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
 };
 
 let allEntries = [];
 
 function titleCase(name) {
   return String(name)
+    .trim()
     .toLowerCase()
     .split(/\s+/)
     .map(w => w ? w[0].toUpperCase() + w.slice(1) : w)
     .join(' ');
+}
+
+function foldSearch(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
+function hasMeaningfulText(s) {
+  return Boolean(s && !/^[\s\-–—._]*$|^n\/?a$/i.test(String(s)));
 }
 
 function getPictureId(link) {
@@ -29,7 +60,7 @@ function getPictureId(link) {
   return parts.length > 1 ? parts[1] : '';
 }
 
-// Build an <img> that probes local extensions, then Drive thumbnail, then default.jpg.
+// Build an <img> that probes local extensions, then Drive endpoints, then default.jpg.
 function buildPhoto(pictureId, alt) {
   const img = document.createElement('img');
   img.className = 'photo';
@@ -39,16 +70,24 @@ function buildPhoto(pictureId, alt) {
   const candidates = [];
   if (pictureId) {
     for (const ext of IMG_EXTS) candidates.push(`${LOCAL_IMG_BASE}${pictureId}.${ext}`);
-    candidates.push(`https://drive.google.com/thumbnail?id=${encodeURIComponent(pictureId)}&sz=w500`);
+    const encId = encodeURIComponent(pictureId);
+    candidates.push(`https://lh3.googleusercontent.com/d/${encId}=w500`);
+    candidates.push(`https://drive.google.com/thumbnail?id=${encId}&sz=w500`);
   }
   candidates.push(DEFAULT_IMG);
 
+  const applyCandidate = idx => {
+    const src = candidates[idx];
+    img.classList.toggle('is-default', src === DEFAULT_IMG);
+    img.src = src;
+  };
+
   let i = 0;
-  img.src = candidates[i];
+  applyCandidate(i);
   img.onerror = () => {
     i += 1;
     if (i < candidates.length) {
-      img.src = candidates[i];
+      applyCandidate(i);
     } else {
       img.onerror = null;
     }
@@ -62,8 +101,14 @@ function uniqueSortedYears(entries) {
 }
 
 // Replicates Python: sort by [year asc, timestamp desc] for "All"; by timestamp desc when filtered.
-function filterAndSort(entries, year) {
-  const subset = year === 'all' ? entries : entries.filter(e => Number(e.year) === Number(year));
+// Optional keyword narrows the subset (accent-insensitive across name, education, work, year).
+function filterAndSort(entries, year, keyword = '') {
+  let subset = year === 'all' ? entries : entries.filter(e => Number(e.year) === Number(year));
+  const q = foldSearch(keyword.trim());
+  if (q) {
+    subset = subset.filter(e =>
+      [e.fullname, e.education, e.work, e.year].some(v => foldSearch(v).includes(q)));
+  }
   return subset.slice().sort((a, b) => {
     if (year === 'all' && a.year !== b.year) return Number(a.year) - Number(b.year);
     return String(b.timestamp).localeCompare(String(a.timestamp));
@@ -71,8 +116,8 @@ function filterAndSort(entries, year) {
 }
 
 function renderYearFilter(years) {
-  const opts = ['<option value="all">Tất cả</option>']
-    .concat(years.map(y => `<option value="${y}">${y}</option>`));
+  const opts = ['<option value="all">Tất cả khóa</option>']
+    .concat(years.map(y => `<option value="${y}">Khóa ${y}</option>`));
   els.yearFilter.innerHTML = opts.join('');
 }
 
@@ -82,14 +127,41 @@ function renderIndex(entries) {
     return `<tr>
       <td>${i + 1}</td>
       <td>${escapeHtml(String(e.year))}</td>
-      <td><a href="#${anchor}">${escapeHtml(e.fullname)}</a></td>
+      <td><a href="#${anchor}" class="drawer-jump-link">${escapeHtml(e.fullname)}</a></td>
     </tr>`;
   });
   els.indexBody.innerHTML = rows.join('');
 }
 
+function formatDate(ts) {
+  const d = String(ts || '').split(' ')[0];
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+}
+
+function buildSection(kind, fr, vn, text) {
+  const html = formatLinesWithYears(text);
+  if (!html) return null;
+  const section = document.createElement('section');
+  section.className = `entry-section ${kind}`;
+  section.innerHTML =
+    `<h3 class="section-label">${ICONS[kind]}<span class="section_fr">${fr}</span>` +
+    `<span class="section_vn">${vn}</span></h3>` +
+    `<div class="body">${html}</div>`;
+  return section;
+}
+
 function renderEntries(entries) {
   els.entries.innerHTML = '';
+
+  if (entries.length === 0) {
+    els.entries.innerHTML = `<div class="empty-notice">
+      <h3>Không tìm thấy hồ sơ phù hợp</h3>
+      <p>Thử chọn khóa khác hoặc xóa bớt từ khóa tìm kiếm.</p>
+    </div>`;
+    return;
+  }
+
   const frag = document.createDocumentFragment();
 
   for (const e of entries) {
@@ -100,50 +172,48 @@ function renderEntries(entries) {
     card.className = 'entry';
     card.id = anchor;
 
-    const promo = document.createElement('h3');
-    promo.className = 'promo';
-    promo.textContent = `${year - 3} - ${year}`;
-    card.appendChild(promo);
+    // Head: portrait + vertically centered identity
+    const head = document.createElement('header');
+    head.className = 'entry-head';
+
+    const frame = document.createElement('div');
+    frame.className = 'photo-frame';
+    frame.appendChild(buildPhoto(getPictureId(e.picture_link), e.fullname));
+    head.appendChild(frame);
+
+    const identity = document.createElement('div');
+    identity.className = 'entry-identity';
 
     const name = document.createElement('h2');
     name.className = 'fullname';
     name.textContent = e.fullname;
-    card.appendChild(name);
+    identity.appendChild(name);
+
+    const promo = document.createElement('p');
+    promo.className = 'promo';
+    promo.textContent = `Promo ${year - 3} – ${year}`;
+    identity.appendChild(promo);
 
     if (e.email) {
-      const email = document.createElement('div');
+      const email = document.createElement('a');
       email.className = 'email';
-      email.textContent = e.email;
-      card.appendChild(email);
+      email.href = `mailto:${e.email}`;
+      email.innerHTML = `${ICONS.mail}<span>${escapeHtml(e.email)}</span>`;
+      identity.appendChild(email);
     }
 
-    card.appendChild(buildPhoto(getPictureId(e.picture_link), e.fullname));
+    head.appendChild(identity);
+    card.appendChild(head);
 
-    const eduLabel = document.createElement('div');
-    eduLabel.innerHTML =
-      '<span class="section section_fr increase-spacing-2">FORMATION </span>' +
-      '<span class="section section_vn increase-spacing-1"> NGÀNH HỌC</span>';
-    card.appendChild(eduLabel);
+    const eduSection = buildSection('formation', 'Formation', 'Học vấn', e.education);
+    if (eduSection) card.appendChild(eduSection);
 
-    const eduBody = document.createElement('div');
-    eduBody.className = 'body';
-    eduBody.innerHTML = '<p>' + formatLinesWithYears(e.education) + '</p>';
-    card.appendChild(eduBody);
-
-    if (e.work) {
-      const workLabel = document.createElement('div');
-      workLabel.innerHTML =
-        '<span class="section section_fr increase-spacing-2">PROFESSION </span>' +
-        '<span class="section section_vn increase-spacing-1"> CÔNG VIỆC</span>';
-      card.appendChild(workLabel);
-
-      const workBody = document.createElement('div');
-      workBody.className = 'body';
-      workBody.innerHTML = '<p>' + formatLinesWithYears(e.work) + '</p>';
-      card.appendChild(workBody);
+    if (hasMeaningfulText(e.work)) {
+      const workSection = buildSection('profession', 'Profession', 'Công việc', e.work);
+      if (workSection) card.appendChild(workSection);
     }
 
-    const ts = String(e.timestamp || '').split(' ')[0];
+    const ts = formatDate(e.timestamp);
     if (ts) {
       const cap = document.createElement('small');
       cap.className = 'last-update';
@@ -157,11 +227,19 @@ function renderEntries(entries) {
   els.entries.appendChild(frag);
 }
 
+function updateStats(count, total) {
+  els.activeStats.textContent = count === total
+    ? `${total} cựu học sinh`
+    : `${count} / ${total} cựu học sinh`;
+}
+
 function rerender() {
   const year = els.yearFilter.value;
-  const subset = filterAndSort(allEntries, year);
+  const subset = filterAndSort(allEntries, year, els.searchInput.value);
   renderIndex(subset);
   renderEntries(subset);
+  updateStats(subset.length, allEntries.length);
+  if (els.drawerSearch.value) filterDrawerRows(els.drawerSearch.value);
 }
 
 // Replicates utils.keep_last_entry_by_email: per email, keep latest by timestamp.
@@ -176,6 +254,92 @@ function dedupByEmail(entries) {
   }
   return [...byEmail.values()];
 }
+
+function syncBodyLock() {
+  const anyOpen =
+    els.indexDrawer.classList.contains('active') ||
+    els.helpModal.classList.contains('active');
+  document.body.style.overflow = anyOpen ? 'hidden' : '';
+}
+
+// ---------- Roster drawer ----------
+function openDrawer() {
+  if (els.helpModal.classList.contains('active')) closeHelp(false);
+  els.indexDrawer.classList.add('active');
+  els.drawerBackdrop.classList.add('active');
+  els.indexDrawer.setAttribute('aria-hidden', 'false');
+  syncBodyLock();
+  setTimeout(() => els.drawerSearch.focus({ preventScroll: true }), 50);
+}
+
+function closeDrawer() {
+  els.indexDrawer.classList.remove('active');
+  els.drawerBackdrop.classList.remove('active');
+  els.indexDrawer.setAttribute('aria-hidden', 'true');
+  syncBodyLock();
+}
+
+// ---------- Help modal ----------
+function openHelp() {
+  if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  els.helpModal.classList.add('active');
+  els.helpBackdrop.classList.add('active');
+  els.helpModal.setAttribute('aria-hidden', 'false');
+  els.openHelpBtn.classList.add('active');
+  els.openHelpBtn.setAttribute('aria-expanded', 'true');
+  syncBodyLock();
+  els.helpModal.focus({ preventScroll: true });
+}
+
+function closeHelp(restoreFocus = true) {
+  els.helpModal.classList.remove('active');
+  els.helpBackdrop.classList.remove('active');
+  els.helpModal.setAttribute('aria-hidden', 'true');
+  els.openHelpBtn.classList.remove('active');
+  els.openHelpBtn.setAttribute('aria-expanded', 'false');
+  syncBodyLock();
+  if (restoreFocus) els.openHelpBtn.focus({ preventScroll: true });
+}
+
+function filterDrawerRows(raw) {
+  const val = foldSearch(raw.trim());
+  els.indexBody.querySelectorAll('tr').forEach(r => {
+    r.style.display = !val || foldSearch(r.textContent).includes(val) ? '' : 'none';
+  });
+}
+
+els.openDrawerBtn.addEventListener('click', openDrawer);
+els.closeDrawerBtn.addEventListener('click', closeDrawer);
+els.drawerBackdrop.addEventListener('click', closeDrawer);
+
+els.openHelpBtn.addEventListener('click', openHelp);
+els.closeHelpBtn.addEventListener('click', () => closeHelp(true));
+els.helpBackdrop.addEventListener('click', () => closeHelp(true));
+
+document.addEventListener('keydown', evt => {
+  if (evt.key === 'Escape') {
+    if (els.helpModal.classList.contains('active')) closeHelp(true);
+    else if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  }
+});
+
+els.indexBody.addEventListener('click', evt => {
+  if (evt.target.closest('.drawer-jump-link')) closeDrawer();
+});
+
+els.drawerSearch.addEventListener('input', e => filterDrawerRows(e.target.value));
+
+// ---------- Controls ----------
+els.yearFilter.addEventListener('change', rerender);
+els.searchInput.addEventListener('input', rerender);
+
+els.toggleEmail.addEventListener('click', () => {
+  const on = document.body.classList.toggle('show-emails');
+  els.toggleEmail.classList.toggle('active', on);
+  els.toggleEmail.setAttribute('aria-pressed', String(on));
+  els.toggleEmail.querySelector('.email-toggle-text').textContent =
+    on ? 'Ẩn email' : 'Hiện email';
+});
 
 async function init() {
   try {
@@ -193,19 +357,14 @@ async function init() {
     els.yearFilter.value = 'all';
     rerender();
     els.loader.style.display = 'none';
+
+    if (window.location.hash) {
+      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      if (target) target.scrollIntoView({ behavior: 'instant' });
+    }
   } catch (err) {
     els.loader.textContent = `Không tải được dữ liệu: ${err.message}`;
   }
 }
-
-els.yearFilter.addEventListener('change', rerender);
-
-els.toggleEmail.addEventListener('click', () => {
-  const on = document.body.classList.toggle('show-emails');
-  els.toggleEmail.classList.toggle('active', on);
-  els.toggleEmail.textContent = on
-    ? '📧 Ẩn email của mọi người'
-    : '📧 Hiển thị email của mọi người';
-});
 
 init();

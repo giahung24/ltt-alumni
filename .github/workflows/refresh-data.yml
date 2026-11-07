@@ -42,17 +42,17 @@ jobs:
           mkdir -p .streamlit
           printf '%s' "$STREAMLIT_SECRETS_TOML" > .streamlit/secrets.toml
 
-      - name: Export sheet to data/alumni.json
+      - name: Export sheet and sync photos
         run: python scripts/export_sheet.py
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- data/alumni.json; then
-            echo "No changes in data/alumni.json. Nothing to commit."
+          git add data/alumni.json static/img/
+          if git diff --cached --quiet; then
+            echo "No changes in data/alumni.json or static/img/. Nothing to commit."
             exit 0
           fi
-          git add data/alumni.json
           git commit -m "chore: refresh alumni snapshot ($(date -u +%Y-%m-%d))"
           git push
