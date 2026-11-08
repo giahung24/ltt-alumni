@@ -6,7 +6,7 @@ name: Refresh alumni data
 # "Run workflow" button (workflow_dispatch) to test it on demand.
 on:
   schedule:
-    - cron: '0 18 * * 6'
+    - cron: '0 18 * * *'
   workflow_dispatch:
 
 permissions:
