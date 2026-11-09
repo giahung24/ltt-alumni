@@ -45,5 +45,36 @@ class BuildSeedTests(unittest.TestCase):
         self.assertIn(", NULL, '2026-11-08 09:00:00', 1);", sql)
 
 
+class BuildSeedEdgeCaseTests(unittest.TestCase):
+    def test_drive_id_formats(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            img_dir = Path(tmp)
+            (img_dir / "1abc.jpg").write_bytes(b"x")
+            for link in ("https://drive.google.com/open?authuser=0&id=1abc",
+                         "https://drive.google.com/file/d/1abc/view",
+                         "https://drive.google.com/open?id=1abc#view"):
+                self.assertEqual(resolve_photo_filename({"picture_link": link}, img_dir), "1abc.jpg", link)
+
+    def test_none_fields_newlines_and_blank_work(self):
+        payload = {"entries": [
+            {"timestamp": "2020-01-01 00:00:00", "fullname": None, "year": "2012", "education": "a\nb\r\nc",
+             "work": "   ", "email": None},
+        ]}
+        with tempfile.TemporaryDirectory() as tmp:
+            sql = build_seed_sql(payload, Path(tmp))
+        self.assertNotIn("'none'", sql)
+        self.assertIn("SET sql_mode = '';", sql)
+        self.assertIn("('', '', 2012, 'a\\nb\\r\\nc', NULL, NULL, '2020-01-01 00:00:00', 0);", sql)
+        self.assertEqual(sql.count("\n"), 4)
+
+    def test_backup_sorted_by_id(self):
+        base = {"timestamp": "2026-01-01 00:00:00", "fullname": "X", "year": 2010,
+                "education": "e", "work": "w", "photo": "static/img/default.jpg"}
+        payload = {"entries": [dict(base, id=9, email="b@x"), dict(base, id=3, email="a@x")]}
+        with tempfile.TemporaryDirectory() as tmp:
+            sql = build_seed_sql(payload, Path(tmp))
+        self.assertLess(sql.find("(3, 'a@x'"), sql.find("(9, 'b@x'"))
+
+
 if __name__ == "__main__":
     unittest.main()

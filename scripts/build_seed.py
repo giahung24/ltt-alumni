@@ -3,12 +3,15 @@
 Accepts either the legacy data/alumni.json (entries with picture_link) or an
 admin.php backup (entries with id / is_deleted / photo). Stdlib only.
 
+Restore a backup into an EMPTY alumni_entries table (explicit ids would collide).
+
 Usage: python scripts/build_seed.py [input_json=data/alumni.json] [output_sql=seed.sql]
 """
 
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -26,12 +29,10 @@ def resolve_photo_filename(entry: dict, img_dir: Path) -> str | None:
     if photo:
         name = str(photo).replace("\\", "/").rsplit("/", 1)[-1]
         return None if name == "default.jpg" else name
-    link = str(entry.get("picture_link") or "")
-    if "?id=" not in link:
+    m = re.search(r"(?:[?&]id=|/d/)([A-Za-z0-9_-]+)", str(entry.get("picture_link") or ""))
+    if not m:
         return None
-    pic_id = link.split("?id=", 1)[1].split("&", 1)[0].strip()
-    if not pic_id:
-        return None
+    pic_id = m.group(1)
     for ext in KNOWN_IMG_EXTS:
         if (img_dir / f"{pic_id}.{ext}").is_file():
             return f"{pic_id}.{ext}"
@@ -41,12 +42,14 @@ def resolve_photo_filename(entry: dict, img_dir: Path) -> str | None:
 def sql_str(value) -> str:
     if value is None:
         return "NULL"
-    return "'" + str(value).replace("\\", "\\\\").replace("'", "''") + "'"
+    text = str(value).replace("\\", "\\\\").replace("'", "''")
+    # Escape newlines so each INSERT stays on one line (survives CRLF/FTP conversion).
+    return "'" + text.replace("\r", "\\r").replace("\n", "\\n") + "'"
 
 
 def build_seed_sql(payload: dict, img_dir: Path) -> str:
     entries = payload.get("entries", [])
-    is_backup = bool(entries) and all("id" in e for e in entries)
+    is_backup = bool(entries) and all(e.get("id") is not None for e in entries)
     if is_backup:
         entries = sorted(entries, key=lambda e: int(e["id"]))
         columns = BACKUP_COLUMNS
@@ -55,19 +58,20 @@ def build_seed_sql(payload: dict, img_dir: Path) -> str:
         columns = LEGACY_COLUMNS
 
     col_sql = ", ".join(f"`{c}`" for c in columns)
-    lines = ["SET NAMES utf8mb4;", "SET time_zone = '+07:00';"]
+    lines = ["SET NAMES utf8mb4;", "SET time_zone = '+07:00';",
+             "SET sql_mode = '';"]  # no NO_BACKSLASH_ESCAPES: sql_str relies on \ escapes
     for e in entries:
         values = []
         if is_backup:
             values.append(str(int(e["id"])))
         values += [
-            sql_str(str(e.get("email", "")).strip().lower()),
-            sql_str(e.get("fullname", "")),
-            str(int(e["year"])),
-            sql_str(e.get("education", "")),
-            sql_str(e.get("work") or None),
+            sql_str(str(e.get("email") or "").strip().lower()),
+            sql_str(e.get("fullname") or ""),
+            str(int(e["year"])),  # fail loudly on a missing/invalid year
+            sql_str(e.get("education") or ""),
+            sql_str(str(e.get("work") or "").strip() or None),
             sql_str(resolve_photo_filename(e, img_dir)),
-            sql_str(e.get("timestamp", "")),
+            sql_str(e.get("timestamp") or ""),
             str(1 if int(e.get("is_deleted", 0) or 0) else 0),
         ]
         lines.append(f"INSERT INTO alumni_entries ({col_sql}) VALUES ({', '.join(values)});")
