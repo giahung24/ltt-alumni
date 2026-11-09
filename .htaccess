@@ -1,0 +1,15 @@
+AddDefaultCharset UTF-8
+Options -Indexes
+RewriteEngine On
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteRule ^(includes|storage)/ - [F,L]
+<IfModule mod_headers.c>
+  <FilesMatch "\.(jpe?g|JPG|png|webp|css|js)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.php$">
+    Header set Cache-Control "no-store"
+  </FilesMatch>
+</IfModule>
