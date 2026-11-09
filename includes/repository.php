@@ -49,7 +49,7 @@ function rebuild_cache(PDO $pdo, string $cacheFile = CACHE_FILE): array {
     $content = "<?php return " . var_export($rows, true) . ";\n";
 
     try {
-        if (file_put_contents($tmpFile, $content, LOCK_EX) === false) {
+        if (file_put_contents($tmpFile, $content) === false) {
             throw new RuntimeException("Failed to write temporary cache file: {$tmpFile}");
         }
         if (!rename($tmpFile, $cacheFile)) {
