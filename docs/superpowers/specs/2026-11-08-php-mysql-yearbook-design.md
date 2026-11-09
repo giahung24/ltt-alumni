@@ -1,8 +1,8 @@
-# Thiết kế phiên bản PHP/MySQL — Kỷ yếu lớp Pháp (`ltt-alumni.page.gd`)
+# Thiết kế phiên bản PHP/MySQL — Kỷ yếu lớp Pháp (`12p-ltt.page.gd`)
 
 - **Ngày:** 2026-11-08
 - **Branch:** `php-mysql`
-- **Môi trường đích:** InfinityFree Free Hosting (`ltt-alumni.page.gd`), PHP 8.x + MySQL/MariaDB
+- **Môi trường đích:** InfinityFree Free Hosting (`12p-ltt.page.gd`), PHP 8.x + MySQL/MariaDB
 
 ---
 
@@ -11,12 +11,12 @@
 Hiện tại, trang kỷ yếu cựu học sinh lớp Pháp ngữ THPT Chuyên Lý Tự Trọng Cần Thơ (`main`) là một ứng dụng tĩnh (HTML/CSS/JS) đọc dữ liệu từ `data/alumni.json` (84 hồ sơ, 89 file ảnh trong `static/img/`) và đồng bộ định kỳ qua GitHub Actions từ Google Form/Sheet + Google Drive.
 
 Cách vận hành cũ gặp 3 hạn chế lớn:
-1. **Tên miền GitHub Pages:** Đường dẫn có dạng `acc_name.github.io/ltt-alumni` thay vì tên miền riêng gọn đẹp như `ltt-alumni.page.gd`.
+1. **Tên miền GitHub Pages:** Đường dẫn có dạng `acc_name.github.io/ltt-alumni` thay vì tên miền riêng gọn đẹp như `12p-ltt.page.gd`.
 2. **Lịch sử dữ liệu trên repo public:** GitHub Pages miễn phí buộc repository phải để **Public**, nên toàn bộ lịch sử git của `data/alumni.json` (các phiên bản cũ của từng hồ sơ) ai cũng xem được.
    - *Lưu ý trung thực:* chuyển repo sang Private chỉ che **lịch sử git**. Các trường hiển thị trên trang (họ tên, email, học vấn, công việc) **vẫn công khai** vì chúng được nhúng trong HTML của `index.php` để phục vụ tìm kiếm và nút "Hiện email". Dữ liệu đã public trên GitHub từ trước cũng không thể "thu hồi". Dữ liệu thực sự bí mật chỉ gồm: `config.php` (mật khẩu DB/SMTP/admin), bảng OTP và địa chỉ IP người gửi.
 3. **Độ trễ và phụ thuộc Google Form/Drive:** Cựu học sinh cập nhật xong phải đợi cron chạy mới lên web, và việc tải ảnh trên Google Form yêu cầu đăng nhập tài khoản Google.
 
-Phiên bản **PHP/MySQL trên InfinityFree** giải quyết cả 3 vấn đề: chạy trên tên miền `ltt-alumni.page.gd`, cho phép giữ GitHub repository ở chế độ **Private**, lưu trữ và xử lý hồ sơ trực tiếp bằng PHP/MySQL, đồng thời cho phép cựu học sinh thêm/cập nhật hồ sơ và ảnh chân dung ngay trên web với xác thực OTP qua email.
+Phiên bản **PHP/MySQL trên InfinityFree** giải quyết cả 3 vấn đề: chạy trên tên miền `12p-ltt.page.gd`, cho phép giữ GitHub repository ở chế độ **Private**, lưu trữ và xử lý hồ sơ trực tiếp bằng PHP/MySQL, đồng thời cho phép cựu học sinh thêm/cập nhật hồ sơ và ảnh chân dung ngay trên web với xác thực OTP qua email.
 
 ---
 
@@ -291,7 +291,7 @@ Không có nút import: dữ liệu khởi tạo đi qua `seed.sql` (§5.7).
 ### 5.7. Chuyển đổi dữ liệu & thời điểm chuyển (cutover)
 
 1. **Kiểm chứng sớm** các rủi ro ở §6 bằng file test nhỏ trên InfinityFree, trước khi viết phần còn lại.
-2. Cài SSL cho `ltt-alumni.page.gd` trong control panel InfinityFree; tạo database MySQL; upload code và tạo `includes/config.php`.
+2. Cài SSL cho `12p-ltt.page.gd` trong control panel InfinityFree; tạo database MySQL; upload code và tạo `includes/config.php`.
 3. Tạo bảng (schema §5.2) qua phpMyAdmin.
 4. **Đóng Google Form** (hoặc đổi lời nhắn sau khi gửi thành link tới site mới), rồi chạy `scripts/export_sheet.py` lần cuối để `data/alumni.json` chứa mọi bài gửi tới thời điểm đóng.
 5. Chạy local `python scripts/build_seed.py` $\rightarrow$ `seed.sql`:
@@ -300,7 +300,7 @@ Không có nút import: dữ liệu khởi tạo đi qua `seed.sql` (§5.7).
    - `photo_filename` ← tìm `static/img/<picture_id>.<ext>` với các đuôi `jpg`, `jpeg`, `png`, `JPG`, `webp`; không thấy thì `NULL`.
    - Chạy **một lần** trong phpMyAdmin (bảng rỗng), không upload `data/alumni.json` lên server.
 6. Upload `static/img/` qua FTP; mở `admin.php` bấm "Làm mới cache"; đối chiếu số hồ sơ hiển thị = 84.
-7. Trên repo: tắt workflow `refresh-data.yml` (xóa hoặc bỏ lịch `schedule`), chuyển repo sang Private (GitHub Pages tự ngừng), cập nhật `README.md` trỏ tới `https://ltt-alumni.page.gd`.
+7. Trên repo: tắt workflow `refresh-data.yml` (xóa hoặc bỏ lịch `schedule`), chuyển repo sang Private (GitHub Pages tự ngừng), cập nhật `README.md` trỏ tới `https://12p-ltt.page.gd`.
 
 ### 5.8. Sao lưu
 

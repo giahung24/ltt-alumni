@@ -21,5 +21,5 @@ return [
     'admin_password_hash' => '$2y$10$REPLACE_WITH_REAL_HASH',
 
     'otp_daily_cap' => 100,                          // max OTP emails per day (Gmail limit safety)
-    'site_url'      => 'https://ltt-alumni.page.gd',
+    'site_url'      => 'https://12p-ltt.page.gd',
 ];
