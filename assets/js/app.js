@@ -1,8 +1,7 @@
 // LTT Alumni — front-only renderer.
-// Loads data/alumni.json and renders the roster index + alumni cards.
+// Reads window.__ALUMNI_DATA__ (inlined by index.php) and renders the roster index + alumni cards.
 // Core data logic (dedupByEmail, sorting, filtering, anchors, photo fallback) unchanged.
 
-const IMG_EXTS = ['jpg', 'jpeg', 'png', 'JPG', 'webp'];
 const LOCAL_IMG_BASE = 'static/img/';
 const DEFAULT_IMG = LOCAL_IMG_BASE + 'default.jpg';
 
@@ -23,6 +22,10 @@ const els = {
   helpBackdrop: document.getElementById('help-backdrop'),
   openHelpBtn: document.getElementById('open-help-btn'),
   closeHelpBtn: document.getElementById('close-help-btn'),
+  contribModal: document.getElementById('contribute-modal'),
+  contribBackdrop: document.getElementById('contribute-backdrop'),
+  openContribBtn: document.getElementById('open-contribute-btn'),
+  closeContribBtn: document.getElementById('close-contribute-btn'),
 };
 
 const ICONS = {
@@ -54,43 +57,18 @@ function hasMeaningfulText(s) {
   return Boolean(s && !/^[\s\-–—._]*$|^n\/?a$/i.test(String(s)));
 }
 
-function getPictureId(link) {
-  if (!link) return '';
-  const parts = String(link).split('?id=');
-  return parts.length > 1 ? parts[1] : '';
-}
-
-// Build an <img> that probes local extensions, then Drive endpoints, then default.jpg.
-function buildPhoto(pictureId, alt) {
+// Portrait from the server-provided path; a single onerror fallback to default.jpg.
+function buildPhoto(src, alt) {
   const img = document.createElement('img');
   img.className = 'photo';
   img.alt = alt;
   img.loading = 'lazy';
-
-  const candidates = [];
-  if (pictureId) {
-    for (const ext of IMG_EXTS) candidates.push(`${LOCAL_IMG_BASE}${pictureId}.${ext}`);
-    const encId = encodeURIComponent(pictureId);
-    candidates.push(`https://lh3.googleusercontent.com/d/${encId}=w500`);
-    candidates.push(`https://drive.google.com/thumbnail?id=${encId}&sz=w500`);
-  }
-  candidates.push(DEFAULT_IMG);
-
-  const applyCandidate = idx => {
-    const src = candidates[idx];
-    img.classList.toggle('is-default', src === DEFAULT_IMG);
-    img.src = src;
-  };
-
-  let i = 0;
-  applyCandidate(i);
+  img.classList.toggle('is-default', !src || src === DEFAULT_IMG);
+  img.src = src || DEFAULT_IMG;
   img.onerror = () => {
-    i += 1;
-    if (i < candidates.length) {
-      applyCandidate(i);
-    } else {
-      img.onerror = null;
-    }
+    img.onerror = null;
+    img.classList.add('is-default');
+    img.src = DEFAULT_IMG;
   };
   return img;
 }
@@ -178,7 +156,7 @@ function renderEntries(entries) {
 
     const frame = document.createElement('div');
     frame.className = 'photo-frame';
-    frame.appendChild(buildPhoto(getPictureId(e.picture_link), e.fullname));
+    frame.appendChild(buildPhoto(e.photo, e.fullname));
     head.appendChild(frame);
 
     const identity = document.createElement('div');
@@ -258,7 +236,8 @@ function dedupByEmail(entries) {
 function syncBodyLock() {
   const anyOpen =
     els.indexDrawer.classList.contains('active') ||
-    els.helpModal.classList.contains('active');
+    els.helpModal.classList.contains('active') ||
+    els.contribModal.classList.contains('active');
   document.body.style.overflow = anyOpen ? 'hidden' : '';
 }
 
@@ -318,7 +297,8 @@ els.helpBackdrop.addEventListener('click', () => closeHelp(true));
 
 document.addEventListener('keydown', evt => {
   if (evt.key === 'Escape') {
-    if (els.helpModal.classList.contains('active')) closeHelp(true);
+    if (els.contribModal.classList.contains('active')) closeContribute();
+    else if (els.helpModal.classList.contains('active')) closeHelp(true);
     else if (els.indexDrawer.classList.contains('active')) closeDrawer();
   }
 });
@@ -341,30 +321,220 @@ els.toggleEmail.addEventListener('click', () => {
     on ? 'Ẩn email' : 'Hiện email';
 });
 
-async function init() {
-  try {
-    const res = await fetch('data/alumni.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const entries = Array.isArray(json.entries) ? json.entries : [];
+function init() {
+  const data = window.__ALUMNI_DATA__;
+  if (!Array.isArray(data)) {
+    els.loader.textContent = 'Không tải được dữ liệu, vui lòng thử lại sau.';
+    return;
+  }
 
-    allEntries = dedupByEmail(entries).map(e => ({
-      ...e,
-      fullname: titleCase(e.fullname || ''),
-    }));
+  allEntries = dedupByEmail(data).map(e => ({
+    ...e,
+    fullname: titleCase(e.fullname || ''),
+  }));
 
-    renderYearFilter(uniqueSortedYears(allEntries));
-    els.yearFilter.value = 'all';
-    rerender();
-    els.loader.style.display = 'none';
+  renderYearFilter(uniqueSortedYears(allEntries));
+  els.yearFilter.value = 'all';
+  rerender();
+  els.loader.style.display = 'none';
 
-    if (window.location.hash) {
-      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
-      if (target) target.scrollIntoView({ behavior: 'instant' });
-    }
-  } catch (err) {
-    els.loader.textContent = `Không tải được dữ liệu: ${err.message}`;
+  if (window.location.hash) {
+    const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+    if (target) target.scrollIntoView({ behavior: 'instant' });
   }
 }
+
+// ---------- Contribute modal (OTP flow) ----------
+const MAX_UPLOAD = 5 * 1024 * 1024;
+const cf = {
+  error: document.getElementById('contribute-error'),
+  email: document.getElementById('step-email'),
+  otp: document.getElementById('step-otp'),
+  profile: document.getElementById('step-profile'),
+  captchaQ: document.getElementById('cf-captcha-q'),
+  otpEmail: document.getElementById('otp-email-label'),
+  note: document.getElementById('profile-note'),
+  preview: document.getElementById('cf-photo-preview'),
+};
+let cfEmail = '';
+let cfOpener = null;
+
+// Downscale + re-encode as JPEG (EXIF orientation applied by createImageBitmap).
+// Any failure resolves the original file; the server re-validates everything.
+async function resizeImageClientSide(file, maxEdge = 1600, quality = 0.9) {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; // JPEG has no alpha
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close();
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+    return blob ? new File([blob], 'photo.jpg', { type: 'image/jpeg' }) : file;
+  } catch (_) {
+    return file;
+  }
+}
+
+function showError(msg) {
+  cf.error.textContent = msg || '';
+  cf.error.hidden = !msg;
+}
+
+function showStep(form) {
+  for (const f of [cf.email, cf.otp, cf.profile]) f.hidden = f !== form;
+  showError('');
+  const first = form.querySelector('input:not([tabindex="-1"]), textarea');
+  if (first) first.focus({ preventScroll: true });
+}
+
+function setBusy(form, busy) {
+  form.querySelectorAll('button[type="submit"], .link-btn').forEach(b => { b.disabled = busy; });
+}
+
+// Always resolves {status, ok, ...json}; network/parse failures become a Vietnamese error.
+async function callApi(url, init) {
+  try {
+    const res = await fetch(url, init);
+    const json = await res.json();
+    return { ...json, status: res.status, ok: res.ok && json.ok === true };
+  } catch (_) {
+    return { ok: false, status: 0, error: 'Không kết nối được máy chủ, vui lòng thử lại.' };
+  }
+}
+
+function postJson(url, payload) {
+  return callApi(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function loadCaptcha() {
+  cf.captchaQ.textContent = 'Đang tải…';
+  cf.email.captcha.value = '';
+  const r = await callApi('api/request_otp.php');
+  if (r.ok) {
+    cf.captchaQ.textContent = r.question;
+  } else {
+    cf.captchaQ.textContent = '';
+    showError(r.error);
+  }
+}
+
+function openContribute(evt) {
+  cfOpener = evt.currentTarget;
+  if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  if (els.helpModal.classList.contains('active')) closeHelp(false);
+  els.contribModal.classList.add('active');
+  els.contribBackdrop.classList.add('active');
+  els.contribModal.setAttribute('aria-hidden', 'false');
+  syncBodyLock();
+  cf.email.reset();
+  cf.profile.reset();
+  showStep(cf.email);
+  loadCaptcha();
+}
+
+function closeContribute() {
+  els.contribModal.classList.remove('active');
+  els.contribBackdrop.classList.remove('active');
+  els.contribModal.setAttribute('aria-hidden', 'true');
+  syncBodyLock();
+  if (cfOpener && cfOpener.isConnected) cfOpener.focus({ preventScroll: true });
+}
+
+// Back to step 1 with a fresh captcha (every step-1 POST consumes the previous one).
+function backToStart(msg) {
+  showStep(cf.email);
+  showError(msg);
+  loadCaptcha();
+}
+
+async function submitEmail(evt) {
+  evt.preventDefault();
+  const form = cf.email;
+  setBusy(form, true);
+  const email = form.email.value.trim();
+  const r = await postJson('api/request_otp.php', {
+    email, captcha: form.captcha.value.trim(), website_url: form.website_url.value,
+  });
+  setBusy(form, false);
+  if (!r.ok) {
+    showError(r.error);
+    loadCaptcha();
+    return;
+  }
+  cfEmail = email;
+  cf.otpEmail.textContent = email;
+  cf.otp.reset();
+  showStep(cf.otp);
+}
+
+async function submitOtp(evt) {
+  evt.preventDefault();
+  setBusy(cf.otp, true);
+  const r = await postJson('api/verify_otp.php', { email: cfEmail, otp: cf.otp.otp.value.trim() });
+  setBusy(cf.otp, false);
+  if (!r.ok) { showError(r.error); return; }
+
+  const p = r.existing_profile;
+  cf.profile.reset();
+  if (p) {
+    cf.profile.fullname.value = p.fullname || '';
+    cf.profile.graduation_year.value = p.year || '';
+    cf.profile.education.value = p.education || '';
+    cf.profile.work.value = p.work || '';
+  }
+  cf.preview.src = p && p.photo ? p.photo : DEFAULT_IMG;
+  cf.preview.hidden = !(p && p.photo);
+  cf.note.textContent = p
+    ? 'Đã xác thực. Hồ sơ hiện tại của bạn được điền sẵn bên dưới, chỉnh sửa rồi lưu.'
+    : 'Đã xác thực. Hãy điền hồ sơ mới của bạn.';
+  showStep(cf.profile);
+}
+
+async function submitProfile(evt) {
+  evt.preventDefault();
+  const form = cf.profile;
+  setBusy(form, true);
+  try {
+    const fd = new FormData(form);
+    const file = form.photo.files[0];
+    fd.delete('photo');
+    if (file) {
+      const out = await resizeImageClientSide(file);
+      if (out.size > MAX_UPLOAD) {
+        showError('Ảnh vẫn lớn hơn 5 MB sau khi thu nhỏ, vui lòng chọn ảnh khác.');
+        return;
+      }
+      fd.append('photo', out, out.name);
+    }
+    const r = await callApi('api/submit_profile.php', { method: 'POST', body: fd });
+    if (r.ok) {
+      location.href = `?updated=${Date.now()}#${makeAnchor(`${r.year}-${r.fullname}`)}`;
+      return;
+    }
+    if (r.status === 401) backToStart(r.error);
+    else showError(r.error);
+  } finally {
+    setBusy(form, false);
+  }
+}
+
+cf.email.addEventListener('submit', submitEmail);
+cf.otp.addEventListener('submit', submitOtp);
+cf.profile.addEventListener('submit', submitProfile);
+document.getElementById('otp-change').addEventListener('click', () => backToStart(''));
+document.getElementById('otp-resend').addEventListener('click', () => backToStart('Hãy nhập lại phép tính để nhận mã mới.'));
+els.openContribBtn.addEventListener('click', openContribute);
+document.querySelectorAll('[data-open-contribute]').forEach(b => b.addEventListener('click', openContribute));
+els.closeContribBtn.addEventListener('click', closeContribute);
+els.contribBackdrop.addEventListener('click', closeContribute);
 
 init();

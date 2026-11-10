@@ -739,3 +739,98 @@ body.show-emails .email { display: inline-flex; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* ---------- Contribute modal & form ---------- */
+button.btn-contribute { border: none; font-family: inherit; cursor: pointer; }
+.btn-contribute:disabled { opacity: 0.6; cursor: progress; }
+.btn-block { width: 100%; margin-top: 0.5rem; }
+
+.contribute-modal { width: min(540px, calc(100vw - 2rem)); }
+.contribute-modal .modal-body { padding-top: 1.25rem; }
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--color-primary-hover); }
+.link-btn:disabled { opacity: 0.6; cursor: progress; }
+.link-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-primary-subtle); border-radius: var(--radius-sm); }
+
+.form-pane[hidden], .form-error[hidden] { display: none; }
+.form-hint { font-size: 0.875rem; color: var(--color-text-muted); line-height: 1.6; margin-bottom: 1rem; }
+.form-field .form-hint { margin: 0.35rem 0 0; color: var(--color-text-subtle); }
+.form-error {
+  margin-bottom: 1rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-primary-hover);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-field { margin-bottom: 1rem; }
+.form-field label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="number"],
+.form-field textarea {
+  width: 100%;
+  padding: 0 0.875rem;
+  height: 2.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 1rem; /* 16px: no iOS zoom on focus */
+  color: var(--color-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.form-field textarea { height: auto; padding: 0.625rem 0.875rem; line-height: 1.5; resize: vertical; }
+.form-field input:focus, .form-field textarea:focus {
+  outline: none;
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+.form-field .captcha-q { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 600; color: var(--color-text); font-variant-numeric: tabular-nums; }
+#cf-otp { letter-spacing: 0.4em; font-variant-numeric: tabular-nums; text-align: center; font-size: 1.25rem; }
+
+.form-links { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; font-size: 0.875rem; }
+
+.photo-pick { display: flex; align-items: center; gap: 0.875rem; }
+.photo-pick input[type="file"] { flex: 1; min-width: 0; font-family: inherit; font-size: 0.875rem; color: var(--color-text-muted); }
+.photo-preview {
+  width: 56px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 22%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* Honeypot: off-screen, not display:none (some bots skip those) */
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+@media (max-width: 820px) {
+  .contribute-modal { max-height: calc(100dvh - 1.5rem); }
+  .form-links { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .btn-block { height: 2.75rem; }
+  .link-btn { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  .photo-pick { flex-direction: column; align-items: flex-start; }
+}
