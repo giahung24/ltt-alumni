@@ -21,8 +21,8 @@ Unlike generic LinkedIn networks or private spreadsheets, this is an intimate, b
 ## Operating Context
 
 - Browsed on desktop and mobile by alumni worldwide (Vietnam, France, Canada, Europe, etc.).
-- Static web client loading structured records from `data/alumni.json`.
-- Contributions and updates submitted through an external Google Form, automatically deduplicated by latest submission per email.
+- PHP page (`index.php`, hosted at https://12p-ltt.page.gd) embedding records from MySQL via a server-side file cache; filtering and search stay client-side.
+- Contributions and updates submitted on the page itself through an email-OTP modal; the latest submission per email is displayed, history is kept.
 
 ## Capabilities and Constraints
 
@@ -32,7 +32,7 @@ Unlike generic LinkedIn networks or private spreadsheets, this is an intimate, b
 
 ## Evidence on Hand
 
-- Production alumni dataset in `data/alumni.json` with 800+ lines of real profiles spanning promotion years from 2000s through 2020s.
+- Production alumni dataset (84 profiles, seeded from `data/alumni.json` into MySQL) spanning promotion years from 2006 through 2023.
 - Local avatar assets in `static/img/`.
 - Working text utilities in `assets/js/text.js` and renderer in `assets/js/app.js`.
 
