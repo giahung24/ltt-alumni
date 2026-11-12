@@ -21,6 +21,7 @@ Strict two-voice hierarchy with zero mid-line mixing:
 | `--color-border` | `#d8dfe9` | Hairline structural dividers |
 
 ## Component & Layout Rules
-- **Portrait Header (`.entry-head`)**: `140px` (`4:5` aspect ratio, `112px` on compact mobile) portrait frame paired with a vertically centered identity block (`h2.fullname` -> `.promo` -> optional `.email`). Real portraits crop at `object-position: 50% 22%`; missing portraits fall back to the `4:5` *Gravure Beaux-Arts* illustration (`static/img/default.jpg`, centered via `.photo.is-default`).
+- **Portrait Header (`.entry-head`)**: `140px` (`4:5` aspect ratio, `112px` on compact mobile) interactive portrait frame paired with a vertically centered identity block (`h2.fullname > button.fullname-trigger` -> `.promo` -> optional `.email`). Real portraits crop at `object-position: 50% 22%`; missing portraits fall back to the `4:5` *Gravure Beaux-Arts* illustration (`static/img/default.jpg`, centered via `.photo.is-default`).
+- **Editorial Profile Modal (`.profile-modal`)**: Opened by clicking or activating a card's portrait or full name. Uses a 2-column split editorial layout (`340px` matted `4:5` portrait plate on `--color-surface-subtle` left, scrollable biography + `Trước`/`Tiếp` filtered-list navigation on the right; single-column stacked on `<= 720px`).
 - **Adaptive Timeline (`.tl-item`)**: Single-milestone entries render cleanly without decorative rails; multi-milestone entries (`2+`) render 7px ring nodes connected strictly between consecutive nodes.
 - **Responsive Sticky Bar**: Single-row toolbar on desktop; compact two-row grid on mobile (`<= 820px`) keeping search full-width and cohort filter + actions aligned on one row.

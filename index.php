@@ -89,6 +89,44 @@ try {
     <p>Kỷ yếu lớp Pháp · THPT Chuyên Lý Tự Trọng Cần Thơ</p>
   </footer>
 
+  <div id="profile-backdrop" class="modal-backdrop"></div>
+  <div id="profile-modal" class="help-modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-name" aria-hidden="true" tabindex="-1">
+    <div class="profile-modal-layout">
+      <div class="profile-modal-media">
+        <div class="profile-modal-frame">
+          <img id="profile-modal-photo" class="photo" src="static/img/default.jpg" alt="">
+        </div>
+      </div>
+      <div class="profile-modal-content">
+        <div class="profile-modal-header">
+          <div class="profile-modal-identity">
+            <h2 id="profile-modal-name" class="fullname profile-modal-title"></h2>
+            <p id="profile-modal-promo" class="promo"></p>
+            <a id="profile-modal-email" class="email" href="" hidden></a>
+          </div>
+          <button id="close-profile-btn" class="drawer-close-btn profile-close-btn" type="button" aria-label="Đóng hồ sơ">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="profile-modal-sections" class="profile-modal-sections"></div>
+        <div class="profile-modal-footer">
+          <small id="profile-modal-updated" class="last-update"></small>
+          <div id="profile-modal-nav" class="profile-modal-nav" role="group" aria-label="Điều hướng hồ sơ">
+            <button id="profile-prev-btn" class="btn-ghost profile-nav-btn" type="button" aria-label="Hồ sơ trước">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Trước</span>
+            </button>
+            <span id="profile-modal-pos" class="profile-modal-pos" aria-live="polite"></span>
+            <button id="profile-next-btn" class="btn-ghost profile-nav-btn" type="button" aria-label="Hồ sơ tiếp theo">
+              <span>Tiếp</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="help-backdrop" class="modal-backdrop"></div>
   <div id="help-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="guidance-heading" aria-hidden="true" tabindex="-1">
     <div class="modal-header">

@@ -26,6 +26,20 @@ const els = {
   contribBackdrop: document.getElementById('contribute-backdrop'),
   openContribBtn: document.getElementById('open-contribute-btn'),
   closeContribBtn: document.getElementById('close-contribute-btn'),
+  profileModal: document.getElementById('profile-modal'),
+  profileBackdrop: document.getElementById('profile-backdrop'),
+  closeProfileBtn: document.getElementById('close-profile-btn'),
+  profilePhoto: document.getElementById('profile-modal-photo'),
+  profileName: document.getElementById('profile-modal-name'),
+  profilePromo: document.getElementById('profile-modal-promo'),
+  profileEmail: document.getElementById('profile-modal-email'),
+  profileSections: document.getElementById('profile-modal-sections'),
+  profileUpdated: document.getElementById('profile-modal-updated'),
+  profileNav: document.getElementById('profile-modal-nav'),
+  profilePos: document.getElementById('profile-modal-pos'),
+  profilePrevBtn: document.getElementById('profile-prev-btn'),
+  profileNextBtn: document.getElementById('profile-next-btn'),
+  profileContent: document.querySelector('#profile-modal .profile-modal-content'),
 };
 
 const ICONS = {
@@ -35,6 +49,9 @@ const ICONS = {
 };
 
 let allEntries = [];
+let currentSubset = [];
+let currentProfileIndex = -1;
+let profileOpener = null;
 
 function titleCase(name) {
   return String(name)
@@ -142,7 +159,8 @@ function renderEntries(entries) {
 
   const frag = document.createDocumentFragment();
 
-  for (const e of entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
     const year = Number(e.year);
     const anchor = makeAnchor(`${year}-${e.fullname}`);
 
@@ -154,8 +172,12 @@ function renderEntries(entries) {
     const head = document.createElement('header');
     head.className = 'entry-head';
 
-    const frame = document.createElement('div');
+    const frame = document.createElement('button');
+    frame.type = 'button';
     frame.className = 'photo-frame';
+    frame.dataset.profileIndex = String(i);
+    frame.setAttribute('aria-label', `Xem hồ sơ của ${e.fullname}`);
+    frame.setAttribute('aria-haspopup', 'dialog');
     frame.appendChild(buildPhoto(e.photo, e.fullname));
     head.appendChild(frame);
 
@@ -164,7 +186,13 @@ function renderEntries(entries) {
 
     const name = document.createElement('h2');
     name.className = 'fullname';
-    name.textContent = e.fullname;
+    const nameBtn = document.createElement('button');
+    nameBtn.type = 'button';
+    nameBtn.className = 'fullname-trigger';
+    nameBtn.dataset.profileIndex = String(i);
+    nameBtn.setAttribute('aria-haspopup', 'dialog');
+    nameBtn.textContent = e.fullname;
+    name.appendChild(nameBtn);
     identity.appendChild(name);
 
     const promo = document.createElement('p');
@@ -213,10 +241,10 @@ function updateStats(count, total) {
 
 function rerender() {
   const year = els.yearFilter.value;
-  const subset = filterAndSort(allEntries, year, els.searchInput.value);
-  renderIndex(subset);
-  renderEntries(subset);
-  updateStats(subset.length, allEntries.length);
+  currentSubset = filterAndSort(allEntries, year, els.searchInput.value);
+  renderIndex(currentSubset);
+  renderEntries(currentSubset);
+  updateStats(currentSubset.length, allEntries.length);
   if (els.drawerSearch.value) filterDrawerRows(els.drawerSearch.value);
 }
 
@@ -237,13 +265,107 @@ function syncBodyLock() {
   const anyOpen =
     els.indexDrawer.classList.contains('active') ||
     els.helpModal.classList.contains('active') ||
-    els.contribModal.classList.contains('active');
+    els.contribModal.classList.contains('active') ||
+    els.profileModal.classList.contains('active');
   document.body.style.overflow = anyOpen ? 'hidden' : '';
+}
+
+// ---------- Profile modal ----------
+function renderProfileModal(idx) {
+  const e = currentSubset[idx];
+  if (!e) return;
+  currentProfileIndex = idx;
+
+  const year = Number(e.year);
+  const src = e.photo || DEFAULT_IMG;
+  els.profilePhoto.onerror = null;
+  els.profilePhoto.classList.toggle('is-default', !e.photo || src === DEFAULT_IMG);
+  els.profilePhoto.alt = e.fullname;
+  els.profilePhoto.src = src;
+  els.profilePhoto.onerror = () => {
+    els.profilePhoto.onerror = null;
+    els.profilePhoto.classList.add('is-default');
+    els.profilePhoto.src = DEFAULT_IMG;
+  };
+
+  els.profileName.textContent = e.fullname;
+  els.profilePromo.textContent = `Promo ${year - 3} – ${year}`;
+
+  if (e.email) {
+    els.profileEmail.hidden = false;
+    els.profileEmail.href = `mailto:${e.email}`;
+    els.profileEmail.innerHTML = `${ICONS.mail}<span>${escapeHtml(e.email)}</span>`;
+  } else {
+    els.profileEmail.hidden = true;
+    els.profileEmail.removeAttribute('href');
+    els.profileEmail.innerHTML = '';
+  }
+
+  els.profileSections.innerHTML = '';
+  const eduSection = buildSection('formation', 'Formation', 'Học vấn', e.education);
+  if (eduSection) els.profileSections.appendChild(eduSection);
+  if (hasMeaningfulText(e.work)) {
+    const workSection = buildSection('profession', 'Profession', 'Công việc', e.work);
+    if (workSection) els.profileSections.appendChild(workSection);
+  }
+
+  const ts = formatDate(e.timestamp);
+  els.profileUpdated.textContent = ts ? `Cập nhật lần cuối: ${ts}` : '';
+  els.profileUpdated.hidden = !ts;
+
+  const total = currentSubset.length;
+  els.profileNav.hidden = total <= 1;
+  if (total > 1) {
+    els.profilePos.textContent = `${idx + 1} / ${total}`;
+    els.profilePrevBtn.disabled = idx <= 0;
+    els.profileNextBtn.disabled = idx >= total - 1;
+  }
+
+  if (els.profileContent) els.profileContent.scrollTop = 0;
+  els.profileModal.scrollTop = 0;
+}
+
+function openProfileModal(idx, opener = null) {
+  if (idx < 0 || idx >= currentSubset.length) return;
+  profileOpener = opener;
+  if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  if (els.helpModal.classList.contains('active')) closeHelp(false);
+  renderProfileModal(idx);
+  els.profileModal.classList.add('active');
+  els.profileBackdrop.classList.add('active');
+  els.profileModal.setAttribute('aria-hidden', 'false');
+  syncBodyLock();
+  els.profileModal.focus({ preventScroll: true });
+}
+
+function closeProfileModal(restoreFocus = true) {
+  els.profileModal.classList.remove('active');
+  els.profileBackdrop.classList.remove('active');
+  els.profileModal.setAttribute('aria-hidden', 'true');
+  syncBodyLock();
+  if (restoreFocus) {
+    const currentCardTrigger = els.entries.querySelector(
+      `.fullname-trigger[data-profile-index="${currentProfileIndex}"]`
+    );
+    const focusTarget = (profileOpener && profileOpener.isConnected &&
+      Number(profileOpener.dataset.profileIndex) === currentProfileIndex)
+      ? profileOpener
+      : currentCardTrigger;
+    if (focusTarget) focusTarget.focus({ preventScroll: true });
+  }
+}
+
+function stepProfile(delta) {
+  const nextIdx = currentProfileIndex + delta;
+  if (nextIdx >= 0 && nextIdx < currentSubset.length) {
+    renderProfileModal(nextIdx);
+  }
 }
 
 // ---------- Roster drawer ----------
 function openDrawer() {
   if (els.helpModal.classList.contains('active')) closeHelp(false);
+  if (els.profileModal.classList.contains('active')) closeProfileModal(false);
   els.indexDrawer.classList.add('active');
   els.drawerBackdrop.classList.add('active');
   els.indexDrawer.setAttribute('aria-hidden', 'false');
@@ -261,6 +383,7 @@ function closeDrawer() {
 // ---------- Help modal ----------
 function openHelp() {
   if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  if (els.profileModal.classList.contains('active')) closeProfileModal(false);
   els.helpModal.classList.add('active');
   els.helpBackdrop.classList.add('active');
   els.helpModal.setAttribute('aria-hidden', 'false');
@@ -287,6 +410,18 @@ function filterDrawerRows(raw) {
   });
 }
 
+els.entries.addEventListener('click', evt => {
+  const trigger = evt.target.closest('[data-profile-index]');
+  if (!trigger) return;
+  const idx = Number(trigger.dataset.profileIndex);
+  if (Number.isInteger(idx)) openProfileModal(idx, trigger);
+});
+
+els.closeProfileBtn.addEventListener('click', () => closeProfileModal(true));
+els.profileBackdrop.addEventListener('click', () => closeProfileModal(true));
+els.profilePrevBtn.addEventListener('click', () => stepProfile(-1));
+els.profileNextBtn.addEventListener('click', () => stepProfile(1));
+
 els.openDrawerBtn.addEventListener('click', openDrawer);
 els.closeDrawerBtn.addEventListener('click', closeDrawer);
 els.drawerBackdrop.addEventListener('click', closeDrawer);
@@ -298,8 +433,17 @@ els.helpBackdrop.addEventListener('click', () => closeHelp(true));
 document.addEventListener('keydown', evt => {
   if (evt.key === 'Escape') {
     if (els.contribModal.classList.contains('active')) closeContribute();
+    else if (els.profileModal.classList.contains('active')) closeProfileModal(true);
     else if (els.helpModal.classList.contains('active')) closeHelp(true);
     else if (els.indexDrawer.classList.contains('active')) closeDrawer();
+  } else if (els.profileModal.classList.contains('active')) {
+    if (evt.key === 'ArrowLeft' && currentProfileIndex > 0) {
+      evt.preventDefault();
+      stepProfile(-1);
+    } else if (evt.key === 'ArrowRight' && currentProfileIndex < currentSubset.length - 1) {
+      evt.preventDefault();
+      stepProfile(1);
+    }
   }
 });
 
@@ -431,6 +575,7 @@ function openContribute(evt) {
   cfOpener = evt.currentTarget;
   if (els.indexDrawer.classList.contains('active')) closeDrawer();
   if (els.helpModal.classList.contains('active')) closeHelp(false);
+  if (els.profileModal.classList.contains('active')) closeProfileModal(false);
   els.contribModal.classList.add('active');
   els.contribBackdrop.classList.add('active');
   els.contribModal.setAttribute('aria-hidden', 'false');
